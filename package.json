@@ -1,0 +1,12 @@
+{
+  "name": "simjs",
+  "version": "1.0.0",
+  "description": "Process based discrete event simulation",
+  "license": "MIT",
+  "author": "Ben Lauwens",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}
