@@ -107,6 +107,15 @@ class Event {
         return cb;
     }
 
+    remove_callback(cb) {
+        for (let i=0; i<this.callbacks.length; i++) {
+            if (cb === this.callbacks[i]) {
+                this.callbacks.splice(i, 1);
+                break;
+            }
+        }
+    }
+
     schedule(delay = 0, priority = 0, result = null) {
         this.scheduled_time = this.sim.now() + delay;
         this.priority = priority;
@@ -140,7 +149,17 @@ function stop_simulation(ev) {
 }
 
 class Operator extends Event {
+    operand;
+    state_results = new Map();
+    constructor(operand, ...events) {
+        super(events[0].sim);
+        this.operand = operand;
+        
+    }
 
+    static check(ev, op) {
+
+    }
 }
 
 class Process extends Event {
@@ -190,6 +209,6 @@ function log(ev) {
 }
 
 const proc = new Process(my_process, sim);
-proc.append_callback(log);
-
+const cb = proc.append_callback(log);
+proc.remove_callback(cb);
 sim.run(timeout(sim, 158));
