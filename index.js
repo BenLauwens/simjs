@@ -35,9 +35,6 @@ class Simulation {
             switch(err.message) {
                 case 'Stop Simulation':
                     break;
-                case 'Empty Schedule':
-                    console.log(err.message);
-                    break;
                 default:
                     throw err;
             }
@@ -51,7 +48,6 @@ class Simulation {
         const ev = this.schedule.pop();
         ev.state = EventState.PROCESSED;
         this.clock = ev.scheduled_time;
-        console.debug('Event ' + ev.eid + ' at time ' + this.clock);
         for (const cb of ev.callbacks) {
             cb(ev);
         }
@@ -148,18 +144,60 @@ function stop_simulation(ev) {
     throw new Error("Stop Simulation");
 }
 
-class Operator extends Event {
+class Condition extends Event {
     operand;
     state_results = new Map();
     constructor(operand, ...events) {
         super(events[0].sim);
         this.operand = operand;
-        
+        for (const ev of events) {
+            this.state_results.set(ev, [ev.state, ev.result]);
+            ev.append_callback(Condition.check, this);
+        }
     }
 
     static check(ev, op) {
-
+        if (op.state === EventState.IDLE) {
+            if (ev.result instanceof Error) {
+                op.schedule(0, 0, ev.result);
+            } else {
+                op.state_results.set(ev, [ev.state, ev.result]);
+                if (op.operand(op.state_results.values())) {
+                    op.schedule(0, 0, op.state_results);
+                }
+            }
+        } else if (op.state === EventState.SCHEDULED){
+            if (ev.result instanceof Error) {
+                op.schedule(0, infinity, ev.result);
+            } else {
+                op.state_results.set(ev, [ev.state, ev.result]);
+            }
+        }
     }
+
+    static eval_and(state_results) {
+        return state_results.map((sr) => sr[0] === EventState.PROCESSED).reduce((s1, s2) => s1 && s2, true);
+    }
+
+    static eval_or(state_results) {
+        return state_results.map((sr) => sr[0] === EventState.PROCESSED).reduce((sr1, sr2) => sr1 || sr2, false);
+    }
+}
+
+function and(ev1, ev2) {
+    return new Condition(Condition.eval_and, ev1, ev2);
+}
+
+function or(ev1, ev2) {
+    return new Condition(Condition.eval_or, ev1, ev2);
+}
+
+function allof(...events) {
+    return new Condition(Condition.eval_and, ...events);
+}
+
+function anyof(...events) {
+    return new Condition(Condition.eval_or, ...events);
 }
 
 class Process extends Event {
@@ -189,7 +227,7 @@ class Process extends Event {
 
 const sim = new Simulation();
 
-function* my_process(sim){
+function* my_process(sim) {
     yield succeed(new Event(sim));
     console.log('Step 1 at time ' + sim.now());
     yield timeout(sim, 1);
@@ -204,11 +242,37 @@ function* my_process(sim){
     return 150;
 }
 
-function log(ev) {
-    console.log('Process stopped with value ' + ev.result);
+function log(ev, arg) {
+    console.log('Process ' + arg + ' stopped with value ' + ev.result);
 }
 
+
 const proc = new Process(my_process, sim);
-const cb = proc.append_callback(log);
+const cb = proc.append_callback(log, 'not');
+proc.append_callback(log, 'really');
 proc.remove_callback(cb);
 sim.run(timeout(sim, 158));
+
+const ev1 = new Event(sim);
+const ev2 = new Event(sim);
+const ev3 = new Event(sim);
+
+function* ev_process(sim, ev1, ev2, ev3) {
+    yield timeout(sim, 20);
+    yield succeed(ev1);
+    yield timeout(sim, 20);
+    yield succeed(ev2);
+    yield timeout(sim, 20);
+    yield succeed(ev3);
+}
+
+function* op_process(sim, ev1, ev2, ev3) {
+    console.log('Before at time ' + sim.now());
+    yield and(or(ev1, ev3), ev2);
+    console.log('After at time ' + sim.now());
+}
+
+new Process(ev_process, sim, ev1, ev2, ev3);
+new Process(op_process, sim, ev1, ev2, ev3);
+
+sim.run(300)
