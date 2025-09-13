@@ -1,9 +1,12 @@
+export { Simulation };
+
 import { Heap } from "./modules/heap.js";
+import { Event, EventState, Condition, Process } from "./modules/event.js";
 
 class Simulation {
     clock;
     eid = 0;
-    schedule = new Heap(Event.isless);
+    heap = new Heap(Event.isless);
     active_process = null;
 
     constructor(clock=0) {
@@ -14,13 +17,17 @@ class Simulation {
         return this.clock;
     }
 
-    schedule_event(ev) {
-        this.schedule.push(ev);
+    schedule(ev, delay=0, priority=0, result=null) {
+        ev.scheduled_time = this.now() + delay;
+        ev.priority = priority;
+        ev.state = EventState.SCHEDULED;
+        ev.result = result;
+        this.heap.push(ev);
     }
 
     run(until=Infinity) {
         if (typeof(until) === 'number') {
-            let ev = timeout(this, until - this.clock);
+            let ev = this.timeout(until - this.clock);
             ev.append_callback(stop_simulation);
         } else if (until instanceof Event) {
             until.append_callback(stop_simulation);
@@ -42,14 +49,14 @@ class Simulation {
     }
 
     step() {
-        if (this.schedule.isempty()) {
+        if (this.heap.isempty()) {
             throw new Error('Empty schedule');
         }
-        const ev = this.schedule.pop();
+        const ev = this.heap.pop();
         ev.state = EventState.PROCESSED;
         this.clock = ev.scheduled_time;
         for (const cb of ev.callbacks) {
-            cb(ev);
+            cb(this);
         }
     }
 
@@ -60,219 +67,47 @@ class Simulation {
     reset_active_process() {
         this.active_process = null;
     }
-}
 
-const EventState = {
-    IDLE: 0,
-    SCHEDULED: 1,
-    PROCESSED: 2
-};
-
-class Event {
-    sim;
-    eid;
-    callbacks = [];
-    state = EventState.IDLE;
-    result;
-    scheduled_time = null;
-    priority;
-    constructor(sim) {
-        this.sim = sim;
-        this.eid = ++sim.eid;
+    event() {
+        return new Event(++this.eid);
     }
 
-    static isless(ev1, ev2) {
-        if (ev1.scheduled_time < ev2.scheduled_time) {
-            return true;
-        } else if (ev1.scheduled_time > ev2.scheduled_time) {
-            return false;
-        } else if (ev1.priority > ev2.priority) {
-            return true;
-        } else if (ev1.priority < ev2.priority) {
-            return false;
-        } else if (ev1.eid < ev2.eid) {
-            return true;
-        } else {
-            return false;
-        }
+    timeout(delay, priority=0, result=null) {
+        const ev = this.event();
+        this.schedule(ev, delay, priority, result);
+        return ev;
     }
 
-    append_callback(func, ...args) {
-        const cb = (ev) => func(ev, ...args)
-        this.callbacks.push(cb);
-        return cb;
+    succeed(ev, priority=0, result=null) {
+        this.schedule(ev, 0, priority, result);
+        return ev;
     }
 
-    remove_callback(cb) {
-        for (let i=0; i<this.callbacks.length; i++) {
-            if (cb === this.callbacks[i]) {
-                this.callbacks.splice(i, 1);
-                break;
-            }
-        }
+    fail(ev, exc, priority=0) {
+        return this.succeed(ev, priority, exc);
     }
 
-    schedule(delay = 0, priority = 0, result = null) {
-        this.scheduled_time = this.sim.now() + delay;
-        this.priority = priority;
-        this.state = EventState.SCHEDULED;
-        this.result = result;
-        this.sim.schedule_event(this);
+    and(ev1, ev2) {
+        return new Condition(++this.eid, Condition.eval_and, ev1, ev2);
     }
-}
 
-function timeout(sim, delay, priority=0, result=null){
-    const ev = new Event(sim);
-    ev.schedule(delay, priority, result);
-    return ev;
-}
+    or(ev1, ev2) {
+        return new Condition(++this.eid, Condition.eval_or, ev1, ev2);
+    }
 
-function succeed(ev, priority=0, result=null) {
-    ev.schedule(0, priority, result);
-    return ev;
-}
+    allof(...events) {
+        return new Condition(++this.eid, Condition.eval_and, ...events);
+    }
 
-function fail(ev, exc, priority=0) {
-    return succeed(ev, priority, exc);
-}
+    anyof(...events) {
+        return new Condition(++this.eid, Condition.eval_or, ...events);
+    }
 
-function initialize(sim) {
-    return timeout(sim, 0);
+    process(func, ...args) {
+        return new Process(++this.eid, func, this, ...args);
+    }
 }
 
 function stop_simulation(ev) {
     throw new Error("Stop Simulation");
 }
-
-class Condition extends Event {
-    operand;
-    state_results = new Map();
-    constructor(operand, ...events) {
-        super(events[0].sim);
-        this.operand = operand;
-        for (const ev of events) {
-            this.state_results.set(ev, [ev.state, ev.result]);
-            ev.append_callback(Condition.check, this);
-        }
-    }
-
-    static check(ev, op) {
-        if (op.state === EventState.IDLE) {
-            if (ev.result instanceof Error) {
-                op.schedule(0, 0, ev.result);
-            } else {
-                op.state_results.set(ev, [ev.state, ev.result]);
-                if (op.operand(op.state_results.values())) {
-                    op.schedule(0, 0, op.state_results);
-                }
-            }
-        } else if (op.state === EventState.SCHEDULED){
-            if (ev.result instanceof Error) {
-                op.schedule(0, infinity, ev.result);
-            } else {
-                op.state_results.set(ev, [ev.state, ev.result]);
-            }
-        }
-    }
-
-    static eval_and(state_results) {
-        return state_results.map((sr) => sr[0] === EventState.PROCESSED).reduce((s1, s2) => s1 && s2, true);
-    }
-
-    static eval_or(state_results) {
-        return state_results.map((sr) => sr[0] === EventState.PROCESSED).reduce((sr1, sr2) => sr1 || sr2, false);
-    }
-}
-
-function and(ev1, ev2) {
-    return new Condition(Condition.eval_and, ev1, ev2);
-}
-
-function or(ev1, ev2) {
-    return new Condition(Condition.eval_or, ev1, ev2);
-}
-
-function allof(...events) {
-    return new Condition(Condition.eval_and, ...events);
-}
-
-function anyof(...events) {
-    return new Condition(Condition.eval_or, ...events);
-}
-
-class Process extends Event {
-    generator;
-    target_ev;
-    resume_cb;
-
-    constructor(func, sim, ...args) {
-        super(sim);
-        this.generator = func(sim, ...args);
-        this.target_ev = initialize(sim);
-        this.resume_cb = this.target_ev.append_callback(Process.execute, this);
-    }
-
-    static execute(ev, proc) {
-        ev.sim.set_active_process(proc);
-        const ret = ev.result instanceof Error ? proc.generator.throw(ev.result) : proc.generator.next(ev.result);
-        ev.sim.reset_active_process();
-        if (ret.done) {
-            proc.schedule(0, 0, ret.value);
-        } else {
-            proc.target_ev = ret.value.state === EventState.PROCESSED ? timeout(sim, 0, 0, ret.value.result) : ret.value;
-            proc.resume_cb = proc.target_ev.append_callback(Process.execute, proc);
-        }
-    }
-}
-
-const sim = new Simulation();
-
-function* my_process(sim) {
-    yield succeed(new Event(sim));
-    console.log('Step 1 at time ' + sim.now());
-    yield timeout(sim, 1);
-    console.log('Step 2 at time ' + sim.now());
-    yield timeout(sim, 1);
-    console.log('Step 3 at time ' + sim.now());
-    try {
-        yield fail(new Event(sim), Error('Failed Event'));
-    } catch {
-        console.log('Recovered from error at time ' + sim.now());
-    }
-    return 150;
-}
-
-function log(ev, arg) {
-    console.log('Process ' + arg + ' stopped with value ' + ev.result);
-}
-
-
-const proc = new Process(my_process, sim);
-const cb = proc.append_callback(log, 'not');
-proc.append_callback(log, 'really');
-proc.remove_callback(cb);
-sim.run(timeout(sim, 158));
-
-const ev1 = new Event(sim);
-const ev2 = new Event(sim);
-const ev3 = new Event(sim);
-
-function* ev_process(sim, ev1, ev2, ev3) {
-    yield timeout(sim, 20);
-    yield succeed(ev1);
-    yield timeout(sim, 20);
-    yield succeed(ev2);
-    yield timeout(sim, 20);
-    yield succeed(ev3);
-}
-
-function* op_process(sim, ev1, ev2, ev3) {
-    console.log('Before at time ' + sim.now());
-    yield and(or(ev1, ev3), ev2);
-    console.log('After at time ' + sim.now());
-}
-
-new Process(ev_process, sim, ev1, ev2, ev3);
-new Process(op_process, sim, ev1, ev2, ev3);
-
-sim.run(300)
