@@ -1,7 +1,11 @@
-export { Simulation };
+export { Simulation, Resource, Container };
 
-import { Heap } from "./modules/heap.js";
-import { Event, EventState, Condition, Process } from "./modules/event.js";
+import { Heap } from './modules/heap.js';
+import { Event, EventState} from './modules/event.js';
+import { Condition } from './modules/condition.js';
+import { Process } from './modules/process.js';
+import { Put, Get } from './modules/container.js';
+import { AbstractResource } from './modules/resource.js';
 
 class Simulation {
     clock;
@@ -17,7 +21,7 @@ class Simulation {
         return this.clock;
     }
 
-    schedule(ev, delay=0, priority=0, result=null) {
+    schedule(ev, delay=0, {priority=0, result=null}={}) {
         ev.scheduled_time = this.now() + delay;
         ev.priority = priority;
         ev.state = EventState.SCHEDULED;
@@ -27,10 +31,10 @@ class Simulation {
 
     run(until=Infinity) {
         if (typeof(until) === 'number') {
-            let ev = this.timeout(until - this.clock);
-            ev.append_callback(stop_simulation);
+            const ev = this.timeout(until - this.clock);
+            ev.append_callback(Simulation.stop);
         } else if (until instanceof Event) {
-            until.append_callback(stop_simulation);
+            until.append_callback(Simulation.stop);
         } else {
             throw new Error('the argument until has to be a Number or an Event');
         }
@@ -55,6 +59,7 @@ class Simulation {
         const ev = this.heap.pop();
         ev.state = EventState.PROCESSED;
         this.clock = ev.scheduled_time;
+        //console.log(ev + ' at time ' + this.now());
         for (const cb of ev.callbacks) {
             cb(this);
         }
@@ -72,19 +77,19 @@ class Simulation {
         return new Event(++this.eid);
     }
 
-    timeout(delay, priority=0, result=null) {
+    timeout(delay, {priority=0, result=null}={}) {
         const ev = this.event();
-        this.schedule(ev, delay, priority, result);
+        this.schedule(ev, delay, {priority: priority, result: result});
         return ev;
     }
 
-    succeed(ev, priority=0, result=null) {
-        this.schedule(ev, 0, priority, result);
+    succeed(ev, {priority=0, result=null}={}) {
+        this.schedule(ev, 0, {priority: priority, result: result});
         return ev;
     }
 
-    fail(ev, exc, priority=0) {
-        return this.succeed(ev, priority, exc);
+    fail(ev, exc, {priority=0}={}) {
+        return this.succeed(ev, {priority: priority, result: exc});
     }
 
     and(ev1, ev2) {
@@ -106,8 +111,52 @@ class Simulation {
     process(func, ...args) {
         return new Process(++this.eid, func, this, ...args);
     }
+
+    put(con, amount, {priority=0}={}) {
+        const ev = new Put(++this.eid, amount, priority);
+        con.put_queue.push(ev);
+        ev.append_callback(AbstractResource.trigger_get, con);
+        AbstractResource.trigger_put(this, ev, con);
+        return ev;
+    }
+
+    lock(res, {priority=0}={}) {
+        const ev = this.put(res, 1, {priority: priority});
+        const sim = this;
+        return { ev, 
+            [Symbol.dispose]() {
+                sim.unlock(res, 1, {priority: priority});
+            }
+        };
+    }
+
+    get(con, amount=1, {priority=0}={}) {
+        const ev = new Get(++this.eid, amount, priority);
+        con.get_queue.push(ev);
+        ev.append_callback(AbstractResource.trigger_put, con);
+        AbstractResource.trigger_get(this, ev, con);
+        return ev;
+    }
+
+    unlock(res, {priority=0}={}) {
+        return this.get(res, 1, {priority: priority});
+    }
+
+    static stop(_, __) {
+        throw new Error("Stop Simulation");
+    }
 }
 
-function stop_simulation(ev) {
-    throw new Error("Stop Simulation");
+class Container extends AbstractResource {
+    capacity;
+    level;
+    put_queue = new Heap(Event.isless);
+    get_queue = new Heap(Event.isless);
+    constructor(capacity, {level=0}={}) {
+        super();
+        this.capacity = capacity;
+        this.level = level;
+    }
 }
+
+const Resource = Container;

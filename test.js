@@ -1,4 +1,4 @@
-import { Simulation } from "./index.js";
+import { Simulation, Resource } from "./index.js";
 
 const sim = new Simulation();
 
@@ -25,7 +25,9 @@ const proc = sim.process(my_process);
 const cb = proc.append_callback(log, 'not');
 proc.append_callback(log, 'really');
 proc.remove_callback(cb);
-sim.run(sim.timeout(158));
+const ev = sim.timeout(158);
+ev.append_callback((sim, _) => console.log('Simulation stopped at time ' + sim.now()));
+sim.run(ev);
 
 const ev1 = sim.event();
 const ev2 = sim.event();
@@ -49,4 +51,31 @@ function* op_process(sim, ev1, ev2, ev3) {
 sim.process(ev_process, ev1, ev2, ev3);
 sim.process(op_process, ev1, ev2, ev3);
 
-sim.run(300)
+sim.run(300);
+
+const res = new Resource(1);
+
+function* lock_process(sim, res){
+    for (let i=0; i<10; i++) {
+        yield sim.lock(res);
+        console.log('Lock ' + i + ' at time ' + sim.now());
+        yield sim.timeout(5);
+        sim.unlock(res);
+        console.log('Unlock ' + i + ' at time ' + sim.now());
+    }
+}
+
+function* lock_prio_process(sim, res){
+    for (let i=0; i<10; i++) {
+        using ev = sim.lock(res, {priority: 1});
+        yield ev;
+        console.log('Lock prio ' + i + ' at time ' + sim.now());
+        yield sim.timeout(10);
+        console.log('Unlock prio ' + i + ' at time ' + sim.now());
+    }
+}
+
+sim.process(lock_prio_process, res);
+sim.process(lock_process, res);
+
+sim.run(600);

@@ -18,18 +18,22 @@ class Heap {
 
     push(value) {
         this.heap.push(value);
-        this.heapifyUp();
+        this.heapify_up();
     }
 
-    heapifyUp() {
-        let currentIndex = this.heap.length - 1;
-        let parentIndex = Math.floor((currentIndex - 1) / 2);
-        while (parentIndex >= 0 &&
-               this.cmp(this.heap[currentIndex], this.heap[parentIndex])
+    first() {
+        return this.heap[0];
+    }
+
+    heapify_up() {
+        let current_index = this.heap.length - 1;
+        let parent_index = Math.floor((current_index - 1) / 2);
+        while (parent_index >= 0 &&
+               this.cmp(this.heap[current_index], this.heap[parent_index])
         ) {
-            this.swap(currentIndex, parentIndex);
-            currentIndex = parentIndex;
-            parentIndex = Math.floor((currentIndex - 1) / 2);
+            this.swap(current_index, parent_index);
+            current_index = parent_index;
+            parent_index = Math.floor((current_index - 1) / 2);
         }
     }
 
@@ -39,27 +43,27 @@ class Heap {
             this.heap.pop()
         } else {
             this.heap[0] = this.heap.pop();
-            this.heapifyDown();
+            this.heapify_down();
         }
         return minValue;
     }
 
-    heapifyDown() {
-        let currentIndex = 0;
-        let smallerChildIndex = 2 * currentIndex + 1;
-        while (smallerChildIndex < this.heap.length) {
-            if (smallerChildIndex + 1 < this.heap.length &&
-                this.cmp(this.heap[smallerChildIndex + 1 ], this.heap[smallerChildIndex])
+    heapify_down() {
+        let current_index = 0;
+        let smaller_child_index = 2 * current_index + 1;
+        while (smaller_child_index < this.heap.length) {
+            if (smaller_child_index + 1 < this.heap.length &&
+                this.cmp(this.heap[smaller_child_index + 1 ], this.heap[smaller_child_index])
             ) {
-                smallerChildIndex += 1;
+                smaller_child_index += 1;
             }
-            if (this.cmp(this.heap[currentIndex], this.heap[smallerChildIndex])) {
+            if (this.cmp(this.heap[current_index], this.heap[smaller_child_index])) {
                 break;
             } else {
-                this.swap(currentIndex, smallerChildIndex);
+                this.swap(current_index, smaller_child_index);
             }
-            currentIndex = smallerChildIndex;
-            smallerChildIndex = 2 * currentIndex + 1;
+            current_index = smaller_child_index;
+            smaller_child_index = 2 * current_index + 1;
         }
     }
 }

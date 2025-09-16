@@ -1,4 +1,4 @@
-export { EventState, Event, Condition, Process };
+export { EventState, Event };
 
 const EventState = {
     IDLE: 0,
@@ -7,14 +7,14 @@ const EventState = {
 };
 
 class Event {
-    eid;
+    id;
     callbacks = [];
     state = EventState.IDLE;
     result;
     scheduled_time = null;
     priority;
-    constructor(eid) {
-        this.eid = eid;
+    constructor(id) {
+        this.id = id;
     }
 
     static isless(ev1, ev2) {
@@ -26,7 +26,7 @@ class Event {
             return true;
         } else if (ev1.priority < ev2.priority) {
             return false;
-        } else if (ev1.eid < ev2.eid) {
+        } else if (ev1.id < ev2.id) {
             return true;
         } else {
             return false;
@@ -47,69 +47,8 @@ class Event {
             }
         }
     }
-}
 
-class Condition extends Event {
-    operand;
-    state_results = new Map();
-    constructor(eid, operand, ...events) {
-        super(eid);
-        this.operand = operand;
-        for (const ev of events) {
-            this.state_results.set(ev, [ev.state, ev.result]);
-            ev.append_callback(Condition.check, this);
-        }
-    }
-
-    static check(sim, ev, op) {
-        if (op.state === EventState.IDLE) {
-            if (ev.result instanceof Error) {
-                sim.schedule(op, 0, 0, ev.result);
-            } else {
-                op.state_results.set(ev, [ev.state, ev.result]);
-                if (op.operand(op.state_results.values())) {
-                    sim.schedule(op, 0, 0, op.state_results);
-                }
-            }
-        } else if (op.state === EventState.SCHEDULED){
-            if (ev.result instanceof Error) {
-                sim.schedule(op, 0, infinity, ev.result);
-            } else {
-                op.state_results.set(ev, [ev.state, ev.result]);
-            }
-        }
-    }
-
-    static eval_and(state_results) {
-        return state_results.map((sr) => sr[0] === EventState.PROCESSED).reduce((s1, s2) => s1 && s2, true);
-    }
-
-    static eval_or(state_results) {
-        return state_results.map((sr) => sr[0] === EventState.PROCESSED).reduce((sr1, sr2) => sr1 || sr2, false);
-    }
-}
-
-class Process extends Event {
-    generator;
-    target_ev;
-    resume_cb;
-
-    constructor(eid, func, sim, ...args) {
-        super(eid);
-        this.generator = func(sim, ...args);
-        this.target_ev = sim.timeout(0);
-        this.resume_cb = this.target_ev.append_callback(Process.execute, this);
-    }
-
-    static execute(sim, ev, proc) {
-        sim.set_active_process(proc);
-        const ret = ev.result instanceof Error ? proc.generator.throw(ev.result) : proc.generator.next(ev.result);
-        sim.reset_active_process();
-        if (ret.done) {
-            sim.schedule(proc, 0, 0, ret.value);
-        } else {
-            proc.target_ev = ret.value.state === EventState.PROCESSED ? sim.timeout(0, 0, ret.value.result) : ret.value;
-            proc.resume_cb = proc.target_ev.append_callback(Process.execute, proc);
-        }
+    toString() {
+        return 'Event ' + this.id;
     }
 }
