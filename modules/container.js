@@ -4,12 +4,17 @@ import { Event } from './event.js';
 
 class ContainerEvent extends Event {
     amount;
-    
+
     constructor(id, amount=1, priority=0) {
         super(id);
         this.amount = amount;
         this.priority = priority;
     }
+
+    [Symbol.dispose]() {
+        this.release_lock();
+    }
+
 }
 
 class Put extends ContainerEvent {

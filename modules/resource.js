@@ -1,6 +1,12 @@
 export { AbstractResource };
 
+import { Heap } from './heap.js';
+import { Event } from './event.js';
+
 class AbstractResource {
+    put_queue = new Heap(Event.isless);
+    get_queue = new Heap(Event.isless);
+
     static trigger_put(sim, _, res) {
         while (! res.put_queue.isempty()) {
             const put_ev = res.put_queue.first();

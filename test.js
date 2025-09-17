@@ -35,16 +35,17 @@ const ev3 = sim.event();
 
 function* ev_process(sim, ev1, ev2, ev3) {
     yield sim.timeout(20);
-    yield sim.succeed(ev1);
+    yield sim.succeed(ev1, {result: 'Yes'});
     yield sim.timeout(20);
-    yield sim.succeed(ev2);
+    yield sim.succeed(ev2, {result: 'No'});
     yield sim.timeout(20);
-    yield sim.succeed(ev3);
+    yield sim.succeed(ev3, {result: 'Maybe'});
 }
 
 function* op_process(sim, ev1, ev2, ev3) {
     console.log('Before at time ' + sim.now());
-    yield sim.and(sim.or(ev1, ev3), ev2);
+    const results = yield sim.and(sim.or(ev1, ev3), ev2);
+    console.log(results);
     console.log('After at time ' + sim.now());
 }
 
@@ -67,8 +68,8 @@ function* lock_process(sim, res){
 
 function* lock_prio_process(sim, res){
     for (let i=0; i<10; i++) {
-        using ev = sim.lock(res, {priority: 1});
-        yield ev;
+        using lock = sim.lock(res, {priority: 1});
+        yield lock;
         console.log('Lock prio ' + i + ' at time ' + sim.now());
         yield sim.timeout(10);
         console.log('Unlock prio ' + i + ' at time ' + sim.now());

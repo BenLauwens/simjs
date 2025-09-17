@@ -128,11 +128,10 @@ class Simulation {
     lock(res, {priority=0}={}) {
         const ev = this.put(res, 1, {priority: priority});
         const sim = this;
-        return { ev, 
-            [Symbol.dispose]() {
-                sim.unlock(res, 1, {priority: priority});
-            }
+        ev.release_lock = function() {
+            sim.unlock(res, 1, {priority: priority});
         };
+        return ev;
     }
 
     get(con, amount=1, {priority=0}={}) {
@@ -155,9 +154,7 @@ class Simulation {
 class Container extends AbstractResource {
     capacity;
     level;
-    put_queue = new Heap(Event.isless);
-    get_queue = new Heap(Event.isless);
-    
+
     constructor(capacity, {level=0}={}) {
         super();
         this.capacity = capacity;

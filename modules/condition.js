@@ -4,13 +4,12 @@ import { Event, EventState } from './event.js';
 
 class Condition extends Event {
     operand;
-    events = new Set();
+    events;
     constructor(eid, operand, ...events) {
         super(eid);
         this.operand = operand;
+        this.events = events;
         for (const ev of events) {
-            //this.state_results.set(ev, [ev.state, ev.result]);
-            this.events.add(ev);
             ev.append_callback(Condition.check, this);
         }
     }
@@ -24,9 +23,8 @@ class Condition extends Event {
             if (ev.result instanceof Error) {
                 sim.schedule(op, 0, {result: ev.result});
             } else {
-                //op.state_results.set(ev, [ev.state, ev.result]);
                 if (op.operand(op.events)) {
-                    sim.schedule(op, 0, {result: op.events});
+                    sim.schedule(op, 0, {result: op.events.map((ev) => ev.result)});
                 }
             }
         } else if (op.state === EventState.SCHEDULED) {
@@ -39,10 +37,10 @@ class Condition extends Event {
     }
 
     static eval_and(events) {
-        return [...events].map((ev) => ev.state === EventState.PROCESSED).reduce((st1, st2) => st1 && st2, true);
+        return events.map((ev) => ev.state === EventState.PROCESSED).reduce((st1, st2) => st1 && st2, true);
     }
 
     static eval_or(events) {
-        return [...events].map((ev) => ev.state === EventState.PROCESSED).reduce((st1, st2) => st1 || st2, false);
+        return events.map((ev) => ev.state === EventState.PROCESSED).reduce((st1, st2) => st1 || st2, false);
     }
 }
