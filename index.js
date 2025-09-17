@@ -1,4 +1,4 @@
-export { Simulation, Resource, Container };
+export { Simulation, Resource, Container, EventState };
 
 import { Heap } from './modules/heap.js';
 import { Event, EventState} from './modules/event.js';
@@ -108,8 +108,13 @@ class Simulation {
         return new Condition(++this.eid, Condition.eval_or, ...events);
     }
 
-    process(func, ...args) {
-        return new Process(++this.eid, func, this, ...args);
+    process(func_or_obj, ...args) {
+        if (func_or_obj instanceof Function) {
+            var generator = func_or_obj(this, ...args);
+        } else {
+            var generator = args[0].call(func_or_obj, this, ...args.splice(1));
+        }
+        return new Process(++this.eid, generator, this);
     }
 
     put(con, amount, {priority=0}={}) {

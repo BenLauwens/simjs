@@ -7,9 +7,14 @@ class Process extends Event {
     target_ev;
     resume_cb;
 
-    constructor(id, func, sim, ...args) {
+    constructor(id, generator, sim) {//func, sim, ...args) {
         super(id);
-        this.generator = func(sim, ...args);
+        /*if (func instanceof Function) {
+            this.generator = func(sim, ...args);
+        } else {
+            this.generator = args[0].call(func, sim, ...args.splice(1));
+        }*/
+        this.generator = generator;
         this.target_ev = sim.timeout(0);
         this.resume_cb = this.target_ev.append_callback(Process.execute, this);
     }

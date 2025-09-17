@@ -4,12 +4,13 @@ import { Event, EventState } from './event.js';
 
 class Condition extends Event {
     operand;
-    state_results = new Map();
+    events = new Set();
     constructor(eid, operand, ...events) {
         super(eid);
         this.operand = operand;
         for (const ev of events) {
-            this.state_results.set(ev, [ev.state, ev.result]);
+            //this.state_results.set(ev, [ev.state, ev.result]);
+            this.events.add(ev);
             ev.append_callback(Condition.check, this);
         }
     }
@@ -23,9 +24,9 @@ class Condition extends Event {
             if (ev.result instanceof Error) {
                 sim.schedule(op, 0, {result: ev.result});
             } else {
-                op.state_results.set(ev, [ev.state, ev.result]);
-                if (op.operand(op.state_results.values())) {
-                    sim.schedule(op, 0, {result: op.state_results});
+                //op.state_results.set(ev, [ev.state, ev.result]);
+                if (op.operand(op.events)) {
+                    sim.schedule(op, 0, {result: op.events});
                 }
             }
         } else if (op.state === EventState.SCHEDULED) {
@@ -37,11 +38,11 @@ class Condition extends Event {
         }
     }
 
-    static eval_and(state_results) {
-        return state_results.map((sr) => sr[0] === EventState.PROCESSED).reduce((s1, s2) => s1 && s2, true);
+    static eval_and(events) {
+        return [...events].map((ev) => ev.state === EventState.PROCESSED).reduce((st1, st2) => st1 && st2, true);
     }
 
-    static eval_or(state_results) {
-        return state_results.map((sr) => sr[0] === EventState.PROCESSED).reduce((sr1, sr2) => sr1 || sr2, false);
+    static eval_or(events) {
+        return [...events].map((ev) => ev.state === EventState.PROCESSED).reduce((st1, st2) => st1 || st2, false);
     }
 }

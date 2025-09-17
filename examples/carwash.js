@@ -22,31 +22,31 @@ class CarWash {
 
     * wash(sim, name) {
         yield sim.timeout(this.wash_time);
-        pct_dirt = getRandomIntInclusive(50, 99);
+        const pct_dirt = getRandomIntInclusive(50, 99);
         console.log('Carwash removed ' + pct_dirt + '% of ' + name + '\'s dirt.');
     }
 }
 
 function* car(sim, name, carwash) {
-    console.log(name + ' arrives at the carwash at ' + sim.now());
+    console.log(name + ' arrives at the carwash at ' + sim.now() + '.');
     using request = sim.lock(carwash.machine);
     yield request;
-    console.log(name + ' enters the carwash at ' + sim.now());
-    yield sim.process(carwash.wash, name);
-    console.log(name + ' leaves the carwash at ' + sim.now());
+    console.log(name + ' enters the carwash at ' + sim.now() + '.');
+    yield sim.process(carwash, carwash.wash, name);
+    console.log(name + ' leaves the carwash at ' + sim.now() + '.');
 }
 
-function* setup(num_machines, wash_time, t_inter) {
+function* setup(sim, num_machines, wash_time, t_inter) {
     const carwash = new CarWash(num_machines, wash_time);
     let car_count = 0;
 
-    for (let i; i<4; i++) {
-        sim.process(car, 'car ' + ++car_count, carwash);
+    for (let i=0; i<4; i++) {
+        sim.process(car, 'Car ' + ++car_count, carwash);
     }
 
     while (true) {
         yield sim.timeout(getRandomIntInclusive(t_inter-2, t_inter+2));
-        sim.process(car, 'car ' + ++car_count, carwash);
+        sim.process(car, 'Car ' + ++car_count, carwash);
     }
 }
 
