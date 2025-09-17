@@ -25,7 +25,7 @@ class Process extends Event {
         if (ret.done) {
             sim.schedule(proc, 0, {result: ret.value});
         } else {
-            const value = ret.value instanceof Event ? ret.value : ret.value.ev
+            const value = ret.value instanceof Event ? ret.value : ret.value.ev // allow automatic resource management
             proc.target_ev = value.state === EventState.PROCESSED ? sim.timeout(0, {result: value.result}) : value;
             proc.resume_cb = proc.target_ev.append_callback(Process.execute, proc);
         }

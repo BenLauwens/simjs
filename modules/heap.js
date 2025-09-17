@@ -28,9 +28,7 @@ class Heap {
     heapify_up() {
         let current_index = this.heap.length - 1;
         let parent_index = Math.floor((current_index - 1) / 2);
-        while (parent_index >= 0 &&
-               this.cmp(this.heap[current_index], this.heap[parent_index])
-        ) {
+        while (parent_index >= 0 && this.cmp(this.heap[current_index], this.heap[parent_index])) {
             this.swap(current_index, parent_index);
             current_index = parent_index;
             parent_index = Math.floor((current_index - 1) / 2);
@@ -52,9 +50,7 @@ class Heap {
         let current_index = 0;
         let smaller_child_index = 2 * current_index + 1;
         while (smaller_child_index < this.heap.length) {
-            if (smaller_child_index + 1 < this.heap.length &&
-                this.cmp(this.heap[smaller_child_index + 1 ], this.heap[smaller_child_index])
-            ) {
+            if (smaller_child_index + 1 < this.heap.length && this.cmp(this.heap[smaller_child_index + 1 ], this.heap[smaller_child_index])) {
                 smaller_child_index += 1;
             }
             if (this.cmp(this.heap[current_index], this.heap[smaller_child_index])) {

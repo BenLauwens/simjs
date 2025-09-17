@@ -31,13 +31,13 @@ class Simulation {
 
     run(until=Infinity) {
         if (typeof(until) === 'number') {
-            const ev = this.timeout(until - this.clock);
-            ev.append_callback(Simulation.stop);
+            var ev = this.timeout(until - this.clock);
         } else if (until instanceof Event) {
-            until.append_callback(Simulation.stop);
+            var ev = until;
         } else {
             throw new Error('the argument until has to be a Number or an Event');
         }
+        ev.append_callback(Simulation.stop);
         try {
             while (true) {
                 this.step();
@@ -152,6 +152,7 @@ class Container extends AbstractResource {
     level;
     put_queue = new Heap(Event.isless);
     get_queue = new Heap(Event.isless);
+    
     constructor(capacity, {level=0}={}) {
         super();
         this.capacity = capacity;

@@ -28,7 +28,7 @@ class Condition extends Event {
                     sim.schedule(op, 0, {result: op.state_results});
                 }
             }
-        } else if (op.state === EventState.SCHEDULED){
+        } else if (op.state === EventState.SCHEDULED) {
             if (ev.result instanceof Error) {
                 sim.schedule(op, 0, {priority: infinity, result: ev.result});
             } else {

@@ -4,6 +4,7 @@ import { Event } from './event.js';
 
 class ContainerEvent extends Event {
     amount;
+    
     constructor(id, amount=1, priority=0) {
         super(id);
         this.amount = amount;
@@ -16,7 +17,7 @@ class Put extends ContainerEvent {
         super(id, amount, priority);
     }
 
-    do(sim, con){
+    do(sim, con) {
         if (con.level + this.amount > con.capacity) {
             return false;
         }
@@ -35,7 +36,7 @@ class Get extends ContainerEvent {
         super(id, amount, priority);
     }
 
-    do(sim, con){
+    do(sim, con) {
         if (con.level - this.amount < 0) {
             return false;
         }

@@ -13,6 +13,7 @@ class Event {
     result;
     scheduled_time = null;
     priority;
+    
     constructor(id) {
         this.id = id;
     }
