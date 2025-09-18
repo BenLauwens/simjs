@@ -93,7 +93,7 @@ class Simulation {
         return new Process(this, generator);
     }
 
-    static stop(_, __) {
+    static stop(_) {
         throw new Error("Stop Simulation");
     }
 }
@@ -114,6 +114,20 @@ class Container extends AbstractResource {
         return ev;
     }
 
+    get(amount=1, {priority=0}={}) {
+        const ev = new ContainerGet(this.sim, amount, priority);
+        this.get_queue.push(ev);
+        ev.append_callback(AbstractResource.trigger_put, this);
+        AbstractResource.trigger_get(ev, this);
+        return ev;
+    }
+}
+
+class Resource extends Container {
+    constructor(sim, capacity=1) {
+        super(sim, capacity);
+    }
+
     lock({priority=0}={}) {
         const ev = this.put(1, {priority: priority});
         const res = this;
@@ -123,20 +137,10 @@ class Container extends AbstractResource {
         return ev;
     }
 
-    get(amount=1, {priority=0}={}) {
-        const ev = new ContainerGet(this.sim, amount, priority);
-        this.get_queue.push(ev);
-        ev.append_callback(AbstractResource.trigger_put, this);
-        AbstractResource.trigger_get(ev, this);
-        return ev;
-    }
-
     unlock({priority=0}={}) {
         return this.get(1, {priority: priority});
     }
 }
-
-const Resource = Container;
 
 class Store extends AbstractResource {
     items;
