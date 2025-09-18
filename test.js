@@ -1,4 +1,4 @@
-import { Simulation, Resource } from "./index.js";
+import { Simulation, Resource, Store } from "./index.js";
 
 const sim = new Simulation();
 
@@ -80,3 +80,26 @@ sim.process(lock_prio_process(sim, res));
 sim.process(lock_process(sim, res));
 
 sim.run(600);
+
+function* provide_letters(sim, store, word) {
+    for (const letter of word) {
+        console.log(sim.now() + ': letter \'' + letter + '\' ready for storage');
+        yield store.put(letter);
+        console.log(sim.now() + ': letter \'' + letter + '\' stored');
+        yield sim.timeout(2);
+    }
+}
+
+function* eat_letters(sim, store, word) {
+    for (const letter of word) {
+        console.log(sim.now() + ': letter \'' + letter + '\' needed');
+        yield store.get((item) => item === letter);
+        console.log(sim.now() + ': letter \'' + letter + '\' taken');
+        yield sim.timeout(1);
+    }
+}
+
+const store = new Store(sim, 3);
+sim.process(provide_letters(sim, store, 'banana'));
+sim.process(eat_letters(sim, store, 'naban'));
+sim.run(700);

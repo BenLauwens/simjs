@@ -14,10 +14,10 @@ class AbstractResource {
         this.capacity = capacity;
     }
 
-    static trigger_put(sim, _, res) {
+    static trigger_put(_, __, res) {
         while (! res.put_queue.isempty()) {
             const put_ev = res.put_queue.first();
-            if (put_ev.do(sim, res)) {
+            if (put_ev.do(res)) {
                 res.put_queue.pop();
             } else {
                 break;
@@ -25,10 +25,10 @@ class AbstractResource {
         }
     }
 
-    static trigger_get(sim, _, res) {
+    static trigger_get(_, __, res) {
         while (! res.get_queue.isempty()) {
             const get_ev = res.get_queue.first();
-            if (get_ev.do(sim, res)) {
+            if (get_ev.do(res)) {
                 res.get_queue.pop();
             } else {
                 break;

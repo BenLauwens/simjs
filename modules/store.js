@@ -11,13 +11,14 @@ class StorePut extends Event {
         this.priority = priority;
     }
 
-    do(sim, store) {
-        if (store.items.size() === store.capacity) {
-            return false;
+    do(store) {
+        if (store.load < store.capacity) {
+            store.load += 1;
+            store.items.set(this.item, store.items.has(this.item) ? store.items.get(this.item) + 1 : 1);
+            store.sim.schedule(this);
+            return true;
         }
-        sim.schedule(this);
-        con.level += this.amount;
-        return true;
+        return false;
     }
 
     toString() {
@@ -34,13 +35,21 @@ class StoreGet extends Event {
         this.priority = priority;
     }
 
-    do(sim, store) {
-        if (con.level - this.amount < 0) {
-            return false;
+    do(store) {
+        for (const [item, count] of store.items.entries()){
+            console.log(item, this.func(item));
+            if (this.func(item)) {
+                store.load -= 1;
+                if (count === 1) {
+                    store.items.delete(item);
+                } else {
+                    store.items.set(item, count - 1);
+                }
+                store.sim.schedule(this, {result: item});
+                return true;
+            }
         }
-        sim.schedule(this);
-        con.level -= this.amount;
-        return true;
+        return false;
     }
 
     toString() {

@@ -162,9 +162,10 @@ class Store extends AbstractResource {
     items;
     load;
 
-    constructor(sim, capacity, {items=new Map()}={}) {
+    constructor(sim, capacity=Infinity, {items=new Map()}={}) {
         super(sim, capacity);
         this.items = items;
+        this.load = items.values().reduce((a, b) => a + b, 0);
     }
 
     put(item, {priority=0}={}) {

@@ -22,12 +22,12 @@ class ContainerPut extends ContainerEvent {
         super(id, amount, priority);
     }
 
-    do(sim, con) {
+    do(con) {
         if (con.level + this.amount > con.capacity) {
             return false;
         }
-        sim.schedule(this);
         con.level += this.amount;
+        con.sim.schedule(this);
         return true;
     }
 
@@ -41,12 +41,12 @@ class ContainerGet extends ContainerEvent {
         super(id, amount, priority);
     }
 
-    do(sim, con) {
+    do(con) {
         if (con.level - this.amount < 0) {
             return false;
         }
-        sim.schedule(this);
         con.level -= this.amount;
+        con.sim.schedule(this);
         return true;
     }
 
