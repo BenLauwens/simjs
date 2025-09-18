@@ -1,4 +1,4 @@
-export { Simulation, Resource, Container, Store, EventState };
+export { Simulation, Resource, Container, Store, FilterStore, EventState };
 
 import { Heap } from './modules/heap.js';
 import { Event, EventState} from './modules/event.js';
@@ -7,6 +7,7 @@ import { Process } from './modules/process.js';
 import { AbstractResource } from './modules/resource.js';
 import { ContainerPut, ContainerGet } from './modules/container.js';
 import { StorePut, StoreGet } from './modules/store.js';
+import { FilterStorePut, FilterStoreGet } from './modules/filterstore.js';
 
 class Simulation {
     clock;
@@ -144,12 +145,10 @@ class Resource extends Container {
 
 class Store extends AbstractResource {
     items;
-    load;
 
-    constructor(sim, capacity=Infinity, {items=new Map()}={}) {
+    constructor(sim, capacity=Infinity, {items=[]}={}) {
         super(sim, capacity);
         this.items = items;
-        this.load = items.values().reduce((a, b) => a + b, 0);
     }
 
     put(item, {priority=0}={}) {
@@ -160,8 +159,33 @@ class Store extends AbstractResource {
         return ev;
     }
 
+    get({priority=0}={}) {
+        const ev = new StoreGet(this.sim, priority);
+        this.get_queue.push(ev);
+        ev.append_callback(AbstractResource.trigger_put, this);
+        AbstractResource.trigger_get(ev, this);
+        return ev;
+    }
+}
+
+class FilterStore extends Store {
+    load;
+
+    constructor(sim, capacity=Infinity, {items=new Map()}={}) {
+        super(sim, capacity, {items: items});
+        this.load = items.values().reduce((a, b) => a + b, 0);
+    }
+
+    put(item, {priority=0}={}) {
+        const ev = new FilterStorePut(this.sim, item, priority);
+        this.put_queue.push(ev);
+        ev.append_callback(AbstractResource.trigger_get, this);
+        AbstractResource.trigger_put(ev, this);
+        return ev;
+    }
+
     get(func, {priority=0}={}) {
-        const ev = new StoreGet(this.sim, func, priority);
+        const ev = new FilterStoreGet(this.sim, func, priority);
         this.get_queue.push(ev);
         ev.append_callback(AbstractResource.trigger_put, this);
         AbstractResource.trigger_get(ev, this);

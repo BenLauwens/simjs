@@ -1,4 +1,4 @@
-import { Simulation, Resource, Store } from "./index.js";
+import { Simulation, Resource, Store, FilterStore } from "./index.js";
 
 const sim = new Simulation();
 
@@ -81,6 +81,29 @@ sim.process(lock_process(sim, res));
 
 sim.run(600);
 
+function* sender(sim, channel, message) {
+    for (const word of message.split(' ')) {
+        console.log(sim.now() + ': trying to send \'' + word + '\'');
+        yield channel.put(word);
+        console.log(sim.now() + ': sending \'' + word + '\' succeeded');
+        yield sim.timeout(1);
+    }
+}
+
+function* receiver(sim, channel) {
+    while (true) {
+        console.log(sim.now() + ': ready to receive');
+        const word = yield channel.get();
+        console.log(sim.now() + ': received \'' + word + '\'');
+        yield sim.timeout(10);
+    }
+}
+
+const channel = new Store(sim, 5);
+sim.process(sender(sim, channel, 'Can we transmit this long message without being blocked?'));
+sim.process(receiver(sim, channel));
+sim.run(700);
+
 function* provide_letters(sim, store, word) {
     for (const letter of word) {
         console.log(sim.now() + ': letter \'' + letter + '\' ready for storage');
@@ -99,7 +122,7 @@ function* take_letters(sim, store, word) {
     }
 }
 
-const store = new Store(sim, 3);
-sim.process(provide_letters(sim, store, 'banana'));
-sim.process(take_letters(sim, store, 'naban'));
-sim.run(700);
+const filterstore = new FilterStore(sim, 3);
+sim.process(provide_letters(sim, filterstore, 'banana'));
+sim.process(take_letters(sim, filterstore, 'naban'));
+sim.run(800);
