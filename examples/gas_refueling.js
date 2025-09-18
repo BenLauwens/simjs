@@ -1,5 +1,5 @@
 import { Simulation, Container, Resource } from '../index.js';
-import { getRandomIntInclusive } from '../utils.js';
+import { getRandomIntInclusive } from './utils.js';
 
 const STATION_TANK_SIZE = 200;
 const THRESHOLD = 25;

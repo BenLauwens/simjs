@@ -5,8 +5,8 @@ import { Event } from './event.js';
 class ContainerEvent extends Event {
     amount;
 
-    constructor(id, amount=1, priority=0) {
-        super(id);
+    constructor(sim, amount=1, priority=0) {
+        super(sim);
         this.amount = amount;
         this.priority = priority;
     }
@@ -18,8 +18,8 @@ class ContainerEvent extends Event {
 }
 
 class ContainerPut extends ContainerEvent {
-    constructor(id, amount=1, priority=0) {
-        super(id, amount, priority);
+    constructor(sim, amount=1, priority=0) {
+        super(sim, amount, priority);
     }
 
     do(con) {
@@ -27,7 +27,7 @@ class ContainerPut extends ContainerEvent {
             return false;
         }
         con.level += this.amount;
-        con.sim.schedule(this);
+        this.schedule();
         return true;
     }
 
@@ -37,8 +37,8 @@ class ContainerPut extends ContainerEvent {
 }
 
 class ContainerGet extends ContainerEvent {
-    constructor(id, amount=1, priority=0) {
-        super(id, amount, priority);
+    constructor(sim, amount=1, priority=0) {
+        super(sim, amount, priority);
     }
 
     do(con) {
@@ -46,7 +46,7 @@ class ContainerGet extends ContainerEvent {
             return false;
         }
         con.level -= this.amount;
-        con.sim.schedule(this);
+        this.schedule();
         return true;
     }
 

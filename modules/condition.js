@@ -5,8 +5,8 @@ import { Event, EventState } from './event.js';
 class Condition extends Event {
     operand;
     events;
-    constructor(eid, operand, ...events) {
-        super(eid);
+    constructor(sim, operand, ...events) {
+        super(sim);
         this.operand = operand;
         this.events = events;
         for (const ev of events) {
@@ -18,18 +18,18 @@ class Condition extends Event {
         return 'Condition ' + this.id;
     }
 
-    static check(sim, ev, op) {
+    static check(ev, op) {
         if (op.state === EventState.IDLE) {
             if (ev.result instanceof Error) {
-                sim.schedule(op, 0, {result: ev.result});
+                op.schedule(0, {result: ev.result});
             } else {
                 if (op.operand(op.events)) {
-                    sim.schedule(op, 0, {result: op.events.map((ev) => ev.result)});
+                    op.schedule(0, {result: op.events.map((ev) => ev.result)});
                 }
             }
         } else if (op.state === EventState.SCHEDULED) {
             if (ev.result instanceof Error) {
-                sim.schedule(op, 0, {priority: infinity, result: ev.result});
+                op.schedule(0, {priority: infinity, result: ev.result});
             } else {
                 op.state_results.set(ev, [ev.state, ev.result]);
             }

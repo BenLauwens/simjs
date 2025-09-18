@@ -1,5 +1,5 @@
 import { Simulation, Resource, EventState } from '../index.js';
-import { getRandomExponential, getRandomIn } from '../utils.js';
+import { getRandomExponential, getRandomIn } from './utils.js';
 
 const NEW_CUSTOMERS = 5;
 const INTERVAL_CUSTOMERS = 10;

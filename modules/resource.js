@@ -1,7 +1,7 @@
 export { AbstractResource };
 
 import { Heap } from './heap.js';
-import { Event } from './event.js';
+import { Event, EventState } from './event.js';
 
 class AbstractResource {
     sim;
@@ -14,24 +14,24 @@ class AbstractResource {
         this.capacity = capacity;
     }
 
-    static trigger_put(_, __, res) {
-        while (! res.put_queue.isempty()) {
+    static trigger_put(_, res) {
+        let proceed = true;
+        while (! res.put_queue.isempty() && proceed) {
             const put_ev = res.put_queue.first();
-            if (put_ev.do(res)) {
+            proceed = put_ev.do(res);
+            if (put_ev.state === EventState.SCHEDULED) {
                 res.put_queue.pop();
-            } else {
-                break;
-            }
+            } 
         }
     }
 
-    static trigger_get(_, __, res) {
-        while (! res.get_queue.isempty()) {
+    static trigger_get(_, res) {
+        let proceed = true;
+        while (! res.get_queue.isempty() && proceed) {
             const get_ev = res.get_queue.first();
-            if (get_ev.do(res)) {
+            proceed = get_ev.do(res);
+            if (get_ev.state === EventState.SCHEDULED) {
                 res.get_queue.pop();
-            } else {
-                break;
             }
         }
     }

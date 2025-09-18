@@ -7,6 +7,7 @@ const EventState = {
 };
 
 class Event {
+    sim;
     id;
     callbacks = [];
     state = EventState.IDLE;
@@ -14,8 +15,9 @@ class Event {
     scheduled_time = null;
     priority;
     
-    constructor(id) {
-        this.id = id;
+    constructor(sim) {
+        this.sim = sim;
+        this.id = ++sim.eid;
     }
 
     static isless(ev1, ev2) {
@@ -35,7 +37,7 @@ class Event {
     }
 
     append_callback(func, ...args) {
-        const cb = (sim) => func(sim, this, ...args)
+        const cb = () => func(this, ...args)
         this.callbacks.push(cb);
         return cb;
     }
@@ -47,6 +49,23 @@ class Event {
                 break;
             }
         }
+    }
+
+    schedule(delay=0, {priority=0, result=null}={}) {
+        this.scheduled_time = this.sim.now() + delay;
+        this.priority = priority;
+        this.state = EventState.SCHEDULED;
+        this.result = result;
+        this.sim.heap.push(this);
+        return this;
+    }
+
+    succeed({priority=0, result=null}={}) {
+        return this.schedule(0, {priority: priority, result: result});
+    }
+
+    fail(exc, {priority=0}={}) {
+        return this.succeed({priority: priority, result: exc});
     }
 
     toString() {

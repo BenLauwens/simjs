@@ -5,8 +5,8 @@ import { Event } from './event.js';
 class StorePut extends Event {
     item;
 
-    constructor(id, item, priority=0) {
-        super(id);
+    constructor(sim, item, priority=0) {
+        super(sim);
         this.item = item;
         this.priority = priority;
     }
@@ -15,8 +15,7 @@ class StorePut extends Event {
         if (store.load < store.capacity) {
             store.load += 1;
             store.items.set(this.item, store.items.has(this.item) ? store.items.get(this.item) + 1 : 1);
-            store.sim.schedule(this);
-            return true;
+            this.schedule();
         }
         return false;
     }
@@ -29,15 +28,14 @@ class StorePut extends Event {
 class StoreGet extends Event {
     func;
 
-    constructor(id, func, priority=0) {
-        super(id);
+    constructor(sim, func, priority=0) {
+        super(sim);
         this.func = func;
         this.priority = priority;
     }
 
     do(store) {
         for (const [item, count] of store.items.entries()){
-            console.log(item, this.func(item));
             if (this.func(item)) {
                 store.load -= 1;
                 if (count === 1) {
@@ -45,8 +43,8 @@ class StoreGet extends Event {
                 } else {
                     store.items.set(item, count - 1);
                 }
-                store.sim.schedule(this, {result: item});
-                return true;
+                this.schedule(0, {result: item});
+                break;
             }
         }
         return false;

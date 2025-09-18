@@ -22,14 +22,6 @@ class Simulation {
         return this.clock;
     }
 
-    schedule(ev, delay=0, {priority=0, result=null}={}) {
-        ev.scheduled_time = this.now() + delay;
-        ev.priority = priority;
-        ev.state = EventState.SCHEDULED;
-        ev.result = result;
-        this.heap.push(ev);
-    }
-
     run(until=Infinity) {
         if (typeof(until) === 'number') {
             var ev = this.timeout(until - this.clock);
@@ -60,9 +52,8 @@ class Simulation {
         const ev = this.heap.pop();
         ev.state = EventState.PROCESSED;
         this.clock = ev.scheduled_time;
-        //console.log(ev + ' at time ' + this.now());
         for (const cb of ev.callbacks) {
-            cb(this);
+            cb();
         }
     }
 
@@ -75,42 +66,31 @@ class Simulation {
     }
 
     event() {
-        return new Event(++this.eid);
+        return new Event(this);
     }
 
     timeout(delay, {priority=0, result=null}={}) {
-        const ev = this.event();
-        this.schedule(ev, delay, {priority: priority, result: result});
-        return ev;
-    }
-
-    succeed(ev, {priority=0, result=null}={}) {
-        this.schedule(ev, 0, {priority: priority, result: result});
-        return ev;
-    }
-
-    fail(ev, exc, {priority=0}={}) {
-        return this.succeed(ev, {priority: priority, result: exc});
+        return this.event().schedule(delay, {priority: priority, result: result});
     }
 
     and(ev1, ev2) {
-        return new Condition(++this.eid, Condition.eval_and, ev1, ev2);
+        return new Condition(this, Condition.eval_and, ev1, ev2);
     }
 
     or(ev1, ev2) {
-        return new Condition(++this.eid, Condition.eval_or, ev1, ev2);
+        return new Condition(this, Condition.eval_or, ev1, ev2);
     }
 
     allof(...events) {
-        return new Condition(++this.eid, Condition.eval_and, ...events);
+        return new Condition(this, Condition.eval_and, ...events);
     }
 
     anyof(...events) {
-        return new Condition(++this.eid, Condition.eval_or, ...events);
+        return new Condition(this, Condition.eval_or, ...events);
     }
 
     process(generator) {
-        return new Process(++this.eid, generator, this);
+        return new Process(this, generator);
     }
 
     static stop(_, __) {
@@ -127,10 +107,10 @@ class Container extends AbstractResource {
     }
 
     put(amount, {priority=0}={}) {
-        const ev = new ContainerPut(++this.sim.eid, amount, priority);
+        const ev = new ContainerPut(this.sim, amount, priority);
         this.put_queue.push(ev);
         ev.append_callback(AbstractResource.trigger_get, this);
-        AbstractResource.trigger_put(this.sim, ev, this);
+        AbstractResource.trigger_put(ev, this);
         return ev;
     }
 
@@ -144,10 +124,10 @@ class Container extends AbstractResource {
     }
 
     get(amount=1, {priority=0}={}) {
-        const ev = new ContainerGet(++this.sim.eid, amount, priority);
+        const ev = new ContainerGet(this.sim, amount, priority);
         this.get_queue.push(ev);
         ev.append_callback(AbstractResource.trigger_put, this);
-        AbstractResource.trigger_get(this.sim, ev, this);
+        AbstractResource.trigger_get(ev, this);
         return ev;
     }
 
@@ -169,18 +149,18 @@ class Store extends AbstractResource {
     }
 
     put(item, {priority=0}={}) {
-        const ev = new StorePut(++this.sim.eid, item, priority);
+        const ev = new StorePut(this.sim, item, priority);
         this.put_queue.push(ev);
         ev.append_callback(AbstractResource.trigger_get, this);
-        AbstractResource.trigger_put(this.sim, ev, this);
+        AbstractResource.trigger_put(ev, this);
         return ev;
     }
 
     get(func, {priority=0}={}) {
-        const ev = new StoreGet(++this.sim.eid, func, priority);
+        const ev = new StoreGet(this.sim, func, priority);
         this.get_queue.push(ev);
         ev.append_callback(AbstractResource.trigger_put, this);
-        AbstractResource.trigger_get(this.sim, ev, this);
+        AbstractResource.trigger_get(ev, this);
         return ev;
     }
 }

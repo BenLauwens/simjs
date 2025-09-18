@@ -1,5 +1,5 @@
 import { Simulation, Resource } from '../index.js';
-import { getRandomIntInclusive } from '../utils.js';
+import { getRandomIntInclusive } from './utils.js';
 
 const NUM_MACHINES = 2;
 const WASH_TIME = 5;
