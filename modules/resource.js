@@ -1,38 +1,50 @@
-export { AbstractResource };
+export { ResourcePut, ResourceGet };
 
-import { Heap } from './heap.js';
-import { Event, EventState } from './event.js';
+import { Event } from './event.js';
 
-class AbstractResource {
-    sim;
-    capacity;
-    put_queue = new Heap(Event.isless);
-    get_queue = new Heap(Event.isless);
+class ResourcePut extends Event {
+    res;
 
-    constructor(sim, capacity) {
-        this.sim = sim;
-        this.capacity = capacity;
+    constructor(sim, res, priority=0) {
+        super(sim);
+        this.priority = priority;
+        this.res = res;
     }
 
-    static trigger_put(_, res) {
-        let proceed = true;
-        while (! res.put_queue.isempty() && proceed) {
-            const put_ev = res.put_queue.first();
-            proceed = put_ev.do(res);
-            if (put_ev.state === EventState.SCHEDULED) {
-                res.put_queue.pop();
-            } 
+    do(res) {
+        if (res.users.size < res.capacity) {
+            res.users.add(this);
+            this.schedule();
         }
+        return false;
     }
 
-    static trigger_get(_, res) {
-        let proceed = true;
-        while (! res.get_queue.isempty() && proceed) {
-            const get_ev = res.get_queue.first();
-            proceed = get_ev.do(res);
-            if (get_ev.state === EventState.SCHEDULED) {
-                res.get_queue.pop();
-            }
-        }
+    [Symbol.dispose]() {
+        this.res.release(this, {priority: this.priority});
+    }
+
+    toString() {
+        return 'ResourcePut ' + this.id;
     }
 }
+
+class ResourceGet extends Event {
+    req;
+
+    constructor(sim, req, priority=0) {
+        super(sim);
+        this.req = req;
+        this.priority = priority;
+    }
+
+    do(res) {
+        res.users.delete(this.req);
+        this.schedule();
+        return false;
+    }
+
+    toString() {
+        return 'ResourceGet ' + this.id;
+    }
+}
+

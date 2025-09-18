@@ -16,11 +16,11 @@ function* source(sim, number, interval, counter) {
 function* customer(sim, name, counter, time_in_bank) {
     const arrive = sim.now();
     console.log(arrive.toFixed(2).padStart(5, '0') + ' ' + name + ': Here I am');
-    using request = counter.lock();
+    using req = counter.request();
     const patience = getRandomIn(MIN_PATIENCE, MAX_PATIENCE);
-    yield sim.or(request, sim.timeout(patience));
+    yield sim.or(req, sim.timeout(patience));
     const wait = sim.now() - arrive;
-    if (request.state === EventState.PROCESSED) {    
+    if (req.state === EventState.PROCESSED) {    
         console.log(sim.now().toFixed(2).padStart(5, '0') + ' ' + name + ': Waited ' + wait.toFixed(2).padStart(5, '0'));
         yield sim.timeout(getRandomExponential(1 / time_in_bank));
         console.log(sim.now().toFixed(2).padStart(5, '0') + ' ' + name + ': Finished');

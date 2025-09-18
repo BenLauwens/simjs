@@ -10,11 +10,6 @@ class ContainerEvent extends Event {
         this.amount = amount;
         this.priority = priority;
     }
-
-    [Symbol.dispose]() {
-        this.release_lock();
-    }
-
 }
 
 class ContainerPut extends ContainerEvent {

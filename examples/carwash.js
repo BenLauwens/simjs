@@ -24,8 +24,8 @@ class CarWash {
 
 function* car(sim, name, carwash) {
     console.log(name + ' arrives at the carwash at ' + sim.now() + '.');
-    using request = carwash.machine.lock();
-    yield request;
+    using req = carwash.machine.request();
+    yield req;
     console.log(name + ' enters the carwash at ' + sim.now() + '.');
     yield sim.process(carwash.wash(sim, name));
     console.log(name + ' leaves the carwash at ' + sim.now() + '.');

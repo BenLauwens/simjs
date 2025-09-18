@@ -3,8 +3,9 @@ export { Simulation, Resource, Container, Store, FilterStore, EventState };
 import { Heap } from './modules/heap.js';
 import { Event, EventState} from './modules/event.js';
 import { Condition } from './modules/condition.js';
-import { Process } from './modules/process.js';
-import { AbstractResource } from './modules/resource.js';
+import { Process, ProcessState } from './modules/process.js';
+import { AbstractResource } from './modules/abstract_resource.js';
+import { ResourcePut, ResourceGet } from './modules/resource.js';
 import { ContainerPut, ContainerGet } from './modules/container.js';
 import { StorePut, StoreGet } from './modules/store.js';
 import { FilterStorePut, FilterStoreGet } from './modules/filterstore.js';
@@ -94,8 +95,38 @@ class Simulation {
         return new Process(this, generator);
     }
 
+    interrupt(proc, cause=null) {
+        if (proc.state !== ProcessState.STOPPED || this.active_process === proc) {
+            
+        }
+    }
+
     static stop(_) {
         throw new Error("Stop Simulation");
+    }
+}
+
+class Resource extends AbstractResource {
+    users = new Set();
+
+    constructor(sim, capacity=1) {
+        super(sim, capacity);
+    }
+
+    request({priority=0}={}) {
+        const ev = new ResourcePut(this.sim, this, priority);
+        this.put_queue.push(ev);
+        ev.append_callback(AbstractResource.trigger_get, this);
+        AbstractResource.trigger_put(ev, this);
+        return ev;
+    }
+
+    release(req, {priority=0}={}) {
+        const ev = new ResourceGet(this.sim, req, priority);
+        this.get_queue.push(ev);
+        ev.append_callback(AbstractResource.trigger_put, this);
+        AbstractResource.trigger_get(ev, this);
+        return ev;
     }
 }
 
@@ -115,31 +146,12 @@ class Container extends AbstractResource {
         return ev;
     }
 
-    get(amount=1, {priority=0}={}) {
+    get(amount, {priority=0}={}) {
         const ev = new ContainerGet(this.sim, amount, priority);
         this.get_queue.push(ev);
         ev.append_callback(AbstractResource.trigger_put, this);
         AbstractResource.trigger_get(ev, this);
         return ev;
-    }
-}
-
-class Resource extends Container {
-    constructor(sim, capacity=1) {
-        super(sim, capacity);
-    }
-
-    lock({priority=0}={}) {
-        const ev = this.put(1, {priority: priority});
-        const res = this;
-        ev.release_lock = function() {
-            res.unlock(1, {priority: priority});
-        };
-        return ev;
-    }
-
-    unlock({priority=0}={}) {
-        return this.get(1, {priority: priority});
     }
 }
 

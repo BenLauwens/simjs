@@ -13,7 +13,7 @@ const SIM_TIME = 1000;
 function* car(sim, name, gas_station, station_tank) {
     const car_tank_level = getRandomIntInclusive(...CAR_TANK_LEVEL);
     console.log(sim.now().toFixed(1).padStart(6, '0') + ': ' + name + ' arrived at gas station');
-    using req = gas_station.lock()
+    using req = gas_station.request()
     yield req;
     const fuel_required = CAR_TANK_SIZE - car_tank_level;
     yield station_tank.get(fuel_required);

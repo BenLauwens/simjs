@@ -1,7 +1,5 @@
 import { Simulation, Resource, Store, FilterStore } from "./index.js";
 
-const sim = new Simulation();
-
 function* my_process(sim) {
     yield sim.event().succeed();
     console.log('Step 1 at time ' + sim.now());
@@ -21,6 +19,7 @@ function log(ev, arg) {
     console.log('At time ' + ev.sim.now() + ' process ' + arg + ' stopped with value ' + ev.result);
 }
 
+const sim = new Simulation();
 const proc = sim.process(my_process(sim));
 const cb = proc.append_callback(log, 'not');
 proc.append_callback(log, 'really');
@@ -44,31 +43,35 @@ function* ev_process(sim, ev1, ev2, ev3) {
 
 function* op_process(sim, ev1, ev2, ev3) {
     console.log('Before at time ' + sim.now());
-    const results = yield sim.and(sim.or(ev1, ev3), ev2);
+    let results = yield sim.and(sim.or(ev1, ev3), ev2);
+    console.log(results);
+    results = yield sim.allof(ev1, ev3, ev2);
     console.log(results);
     console.log('After at time ' + sim.now());
 }
 
 sim.process(ev_process(sim, ev1, ev2, ev3));
 sim.process(op_process(sim, ev1, ev2, ev3));
-
 sim.run(300);
 
 const res = new Resource(sim, 1);
 
 function* lock_process(sim, res){
     for (let i=0; i<10; i++) {
-        yield res.lock();
+        console.log('Try lock ' + i + ' at time ' + sim.now());
+        const req = res.request();
+        yield req;
         console.log('Lock ' + i + ' at time ' + sim.now());
         yield sim.timeout(5);
-        res.unlock();
+        res.release(req);
         console.log('Unlock ' + i + ' at time ' + sim.now());
     }
 }
 
 function* lock_prio_process(sim, res){
     for (let i=0; i<10; i++) {
-        using lock = res.lock({priority: 1});
+        using lock = res.request({priority: 1});
+        console.log('Try lock prio ' + i + ' at time ' + sim.now());
         yield lock;
         console.log('Lock prio ' + i + ' at time ' + sim.now());
         yield sim.timeout(10);
