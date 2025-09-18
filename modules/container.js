@@ -1,4 +1,4 @@
-export { Put, Get };
+export { ContainerPut, ContainerGet };
 
 import { Event } from './event.js';
 
@@ -17,7 +17,7 @@ class ContainerEvent extends Event {
 
 }
 
-class Put extends ContainerEvent {
+class ContainerPut extends ContainerEvent {
     constructor(id, amount=1, priority=0) {
         super(id, amount, priority);
     }
@@ -32,11 +32,11 @@ class Put extends ContainerEvent {
     }
 
     toString() {
-        return 'Put ' + this.id;
+        return 'ContainerPut ' + this.id;
     }
 }
 
-class Get extends ContainerEvent {
+class ContainerGet extends ContainerEvent {
     constructor(id, amount=1, priority=0) {
         super(id, amount, priority);
     }
@@ -51,7 +51,7 @@ class Get extends ContainerEvent {
     }
 
     toString() {
-        return 'Get ' + this.id;
+        return 'ContainerGet ' + this.id;
     }
 }
 

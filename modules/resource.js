@@ -4,8 +4,15 @@ import { Heap } from './heap.js';
 import { Event } from './event.js';
 
 class AbstractResource {
+    sim;
+    capacity;
     put_queue = new Heap(Event.isless);
     get_queue = new Heap(Event.isless);
+
+    constructor(sim, capacity) {
+        this.sim = sim;
+        this.capacity = capacity;
+    }
 
     static trigger_put(sim, _, res) {
         while (! res.put_queue.isempty()) {

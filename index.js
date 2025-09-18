@@ -1,11 +1,12 @@
-export { Simulation, Resource, Container, EventState };
+export { Simulation, Resource, Container, Store, EventState };
 
 import { Heap } from './modules/heap.js';
 import { Event, EventState} from './modules/event.js';
 import { Condition } from './modules/condition.js';
 import { Process } from './modules/process.js';
-import { Put, Get } from './modules/container.js';
 import { AbstractResource } from './modules/resource.js';
+import { ContainerPut, ContainerGet } from './modules/container.js';
+import { StorePut, StoreGet } from './modules/store.js';
 
 class Simulation {
     clock;
@@ -108,42 +109,8 @@ class Simulation {
         return new Condition(++this.eid, Condition.eval_or, ...events);
     }
 
-    process(func_or_obj, ...args) {
-        if (func_or_obj instanceof Function) {
-            var generator = func_or_obj(this, ...args);
-        } else {
-            var generator = args[0].call(func_or_obj, this, ...args.splice(1));
-        }
+    process(generator) {
         return new Process(++this.eid, generator, this);
-    }
-
-    put(con, amount, {priority=0}={}) {
-        const ev = new Put(++this.eid, amount, priority);
-        con.put_queue.push(ev);
-        ev.append_callback(AbstractResource.trigger_get, con);
-        AbstractResource.trigger_put(this, ev, con);
-        return ev;
-    }
-
-    lock(res, {priority=0}={}) {
-        const ev = this.put(res, 1, {priority: priority});
-        const sim = this;
-        ev.release_lock = function() {
-            sim.unlock(res, 1, {priority: priority});
-        };
-        return ev;
-    }
-
-    get(con, amount=1, {priority=0}={}) {
-        const ev = new Get(++this.eid, amount, priority);
-        con.get_queue.push(ev);
-        ev.append_callback(AbstractResource.trigger_put, con);
-        AbstractResource.trigger_get(this, ev, con);
-        return ev;
-    }
-
-    unlock(res, {priority=0}={}) {
-        return this.get(res, 1, {priority: priority});
     }
 
     static stop(_, __) {
@@ -152,14 +119,67 @@ class Simulation {
 }
 
 class Container extends AbstractResource {
-    capacity;
     level;
 
-    constructor(capacity, {level=0}={}) {
-        super();
-        this.capacity = capacity;
+    constructor(sim, capacity, {level=0}={}) {
+        super(sim, capacity);
         this.level = level;
+    }
+
+    put(amount, {priority=0}={}) {
+        const ev = new ContainerPut(++this.sim.eid, amount, priority);
+        this.put_queue.push(ev);
+        ev.append_callback(AbstractResource.trigger_get, this);
+        AbstractResource.trigger_put(this.sim, ev, this);
+        return ev;
+    }
+
+    lock({priority=0}={}) {
+        const ev = this.put(1, {priority: priority});
+        const res = this;
+        ev.release_lock = function() {
+            res.unlock(1, {priority: priority});
+        };
+        return ev;
+    }
+
+    get(amount=1, {priority=0}={}) {
+        const ev = new ContainerGet(++this.sim.eid, amount, priority);
+        this.get_queue.push(ev);
+        ev.append_callback(AbstractResource.trigger_put, this);
+        AbstractResource.trigger_get(this.sim, ev, this);
+        return ev;
+    }
+
+    unlock({priority=0}={}) {
+        return this.get(1, {priority: priority});
     }
 }
 
 const Resource = Container;
+
+class Store extends AbstractResource {
+    items;
+    load;
+
+    constructor(sim, capacity, {items=new Map()}={}) {
+        super(sim, capacity);
+        this.items = items;
+    }
+
+    put(item, {priority=0}={}) {
+        const ev = new StorePut(++this.sim.eid, item, priority);
+        this.put_queue.push(ev);
+        ev.append_callback(AbstractResource.trigger_get, this);
+        AbstractResource.trigger_put(this.sim, ev, this);
+        return ev;
+    }
+
+    get(func, {priority=0}={}) {
+        const ev = new StoreGet(++this.sim.eid, func, priority);
+        this.get_queue.push(ev);
+        ev.append_callback(AbstractResource.trigger_put, this);
+        AbstractResource.trigger_get(this.sim, ev, this);
+        return ev;
+    }
+}
