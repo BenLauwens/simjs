@@ -26,10 +26,6 @@ class ResourcePut extends Event {
     [Symbol.dispose]() {
         this.res.release(this, {priority: this.priority});
     }
-
-    toString() {
-        return 'ResourcePut ' + this.id;
-    }
 }
 
 class ResourcePreemptPut extends ResourcePut {
@@ -62,10 +58,6 @@ class ResourceGet extends Event {
         res.users.delete(this.req);
         this.schedule();
         return false;
-    }
-
-    toString() {
-        return 'ResourceGet ' + this.id;
     }
 }
 

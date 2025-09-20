@@ -25,10 +25,6 @@ class ContainerPut extends ContainerEvent {
         this.schedule();
         return true;
     }
-
-    toString() {
-        return 'ContainerPut ' + this.id;
-    }
 }
 
 class ContainerGet extends ContainerEvent {
@@ -43,10 +39,6 @@ class ContainerGet extends ContainerEvent {
         con.level -= this.amount;
         this.schedule();
         return true;
-    }
-
-    toString() {
-        return 'ContainerGet ' + this.id;
     }
 }
 

@@ -47,10 +47,6 @@ class Process extends Event {
         }
     }
 
-    toString() {
-        return 'Process ' + this.id;
-    }
-
     static execute(ev, proc) {
         ev.sim.active_process = proc;
         const ret = ev.result instanceof Error ? proc.generator.throw(ev.result) : proc.generator.next(ev.result);

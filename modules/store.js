@@ -18,10 +18,6 @@ class StorePut extends Event {
         }
         return false;
     }
-
-    toString() {
-        return 'StorePut ' + this.id;
-    }
 }
 
 class StoreGet extends Event {
@@ -37,9 +33,5 @@ class StoreGet extends Event {
             this.schedule(0, {result: item});
         }
         return false;
-    }
-
-    toString() {
-        return 'StoreGet ' + this.id;
     }
 }

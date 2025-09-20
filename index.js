@@ -52,7 +52,7 @@ class Simulation {
             throw new Error('Empty schedule');
         }
         const ev = this.heap.pop();
-        //console.log(ev.constructor.name + ': ' + ev.id);
+        //console.log(ev.toString());
         ev.state = EventState.PROCESSED;
         this.clock = ev.scheduled_time;
         for (const cb of ev.callbacks) {

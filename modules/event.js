@@ -69,6 +69,6 @@ class Event {
     }
 
     toString() {
-        return 'Event ' + this.id;
+        return this.constructor.name + ' ' + this.id;
     }
 }
