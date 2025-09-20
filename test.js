@@ -129,3 +129,65 @@ const filterstore = new FilterStore(sim, 3);
 sim.process(provide_letters(sim, filterstore, 'banana'));
 sim.process(take_letters(sim, filterstore, 'naban'));
 sim.run(800);
+
+function* sleeping_beauty(sim) {
+    console.log('I am tired')
+    try {
+        yield sim.timeout(Infinity);
+    } catch (exc) {
+        console.log('I am awoken by a ' + exc.cause.by);
+    }
+}
+
+function* prince(sim, beauty) {
+    yield sim.timeout(10);
+    console.log('Let\'s kiss');
+    yield beauty.interrupt({ by: 'prince' });
+    console.log('Let\'s kiss again');
+    try {
+        yield beauty.interrupt();
+    }
+    catch(exc) {
+        console.log('I am no longer asleep');
+    }
+}
+
+const beauty = sim.process(sleeping_beauty(sim));
+sim.process(prince(sim, beauty));
+sim.run(900);
+
+function* work(sim, res) {
+    yield sim.timeout(5);
+    let wait_time = 10;
+    while (true) {
+        using req = res.request();
+        yield req;
+        console.log('I have ' + wait_time + ' work at time ' + sim.now());
+        try {
+            yield sim.timeout(wait_time);
+            console.log('I am finished at time ' + sim.now());
+            wait_time = 10;
+        } catch (exc) {
+            if (exc.message === 'InterruptException') {
+                wait_time -= sim.now() - exc.cause.usage_since;
+                console.log('I am preempted at time ' + sim.now());
+            }
+        }
+    }
+}
+
+function* important_work(sim, res) {
+    while (true) {
+        yield sim.timeout(2);
+        using ev = res.request({ priority: 1, preempt: true });
+        console.log('I am requested to do priority work at time ' + sim.now());
+        yield ev;
+        console.log('I am priority working at time ' + sim.now());
+        yield sim.timeout(2);
+        console.log('I am finished with priority work at time ' + sim.now());
+    }
+}
+const worker = new Resource(sim, 1);
+sim.process(work(sim, worker));
+sim.process(important_work(sim, worker));
+sim.run(940);

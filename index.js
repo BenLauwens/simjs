@@ -5,7 +5,7 @@ import { Event, EventState} from './modules/event.js';
 import { Condition } from './modules/condition.js';
 import { Process, ProcessState } from './modules/process.js';
 import { AbstractResource } from './modules/abstract_resource.js';
-import { ResourcePut, ResourceGet } from './modules/resource.js';
+import { ResourcePut, ResourcePreemptPut, ResourceGet } from './modules/resource.js';
 import { ContainerPut, ContainerGet } from './modules/container.js';
 import { StorePut, StoreGet } from './modules/store.js';
 import { FilterStorePut, FilterStoreGet } from './modules/filterstore.js';
@@ -30,12 +30,12 @@ class Simulation {
         } else if (until instanceof Event) {
             var ev = until;
         } else {
-            throw new Error('the argument until has to be a Number or an Event');
+            throw new Error('The argument until has to be a Number or an Event.');
         }
         ev.append_callback(Simulation.stop);
         try {
             while (true) {
-                this.step();
+                this.#step();
             }
         } catch (err) {
             switch(err.message) {
@@ -47,24 +47,17 @@ class Simulation {
         }
     }
 
-    step() {
+    #step() {
         if (this.heap.isempty()) {
             throw new Error('Empty schedule');
         }
         const ev = this.heap.pop();
+        //console.log(ev.constructor.name + ': ' + ev.id);
         ev.state = EventState.PROCESSED;
         this.clock = ev.scheduled_time;
         for (const cb of ev.callbacks) {
             cb();
         }
-    }
-
-    set_active_process(proc) {
-        this.active_process = proc;
-    }
-
-    reset_active_process() {
-        this.active_process = null;
     }
 
     event() {
@@ -95,12 +88,6 @@ class Simulation {
         return new Process(this, generator);
     }
 
-    interrupt(proc, cause=null) {
-        if (proc.state !== ProcessState.STOPPED || this.active_process === proc) {
-            
-        }
-    }
-
     static stop(_) {
         throw new Error("Stop Simulation");
     }
@@ -113,8 +100,12 @@ class Resource extends AbstractResource {
         super(sim, capacity);
     }
 
-    request({priority=0}={}) {
-        const ev = new ResourcePut(this.sim, this, priority);
+    request({priority=0, preempt=false}={}) {
+        if (preempt) {
+            var ev = new ResourcePreemptPut(this.sim, this, priority);
+        } else {
+            var ev = new ResourcePut(this.sim, this, priority);
+        }
         this.put_queue.push(ev);
         ev.append_callback(AbstractResource.trigger_get, this);
         AbstractResource.trigger_put(ev, this);

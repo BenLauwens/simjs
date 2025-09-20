@@ -22,14 +22,39 @@ class Process extends Event {
         this.resume_cb = this.target_ev.append_callback(Process.execute, this);
     }
 
+    interrupt(cause=null) {
+        if (this === this.sim.active_process) {
+            throw new Error('A process cannot interrupts itself.');
+        }
+        switch (this.state) {
+            case ProcessState.STARTING:
+                this.target_ev.schedule(0, { priority: Infinity });
+            case ProcessState.STARTED:
+                const err = new Error("InterruptException", { cause: cause });
+                const ev = this.sim.timeout(0, { priority: Infinity, result: err });
+                ev.append_callback(Process.interruption, this);
+                break;
+            case ProcessState.STOPPED:
+                throw new Error('A stopped process cannot be interrupted.');
+        }
+        return this.sim.timeout(0);
+    }
+
+    static interruption(ev, proc) {
+        if (proc.state === ProcessState.STARTED) {
+            proc.target_ev.remove_callback(proc.resume_cb);
+            Process.execute(ev, proc);
+        }
+    }
+
     toString() {
         return 'Process ' + this.id;
     }
 
     static execute(ev, proc) {
-        ev.sim.set_active_process(proc);
+        ev.sim.active_process = proc;
         const ret = ev.result instanceof Error ? proc.generator.throw(ev.result) : proc.generator.next(ev.result);
-        ev.sim.reset_active_process();
+        ev.sim.active_process = null;
         if (ret.done) {
             proc.state = ProcessState.STOPPED;
             proc.schedule(0, {result: ret.value});
