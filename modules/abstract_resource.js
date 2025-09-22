@@ -1,13 +1,33 @@
-export { AbstractResource };
+export { AbstractResource, AbstractResourceEvent };
 
 import { Heap } from './heap.js';
 import { Event, EventState } from './event.js';
 
+class AbstractResourceEvent extends Event {
+
+    constructor(sim, priority){
+        super(sim);
+        this.priority = priority;
+    }
+
+    static isless(ev1, ev2) {
+        if (ev1.priority > ev2.priority) {
+            return true;
+        } else if (ev1.priority < ev2.priority) {
+            return false;
+        } else if (ev1.id < ev2.id) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+}
+
 class AbstractResource {
     sim;
     capacity;
-    put_queue = new Heap(Event.isless);
-    get_queue = new Heap(Event.isless);
+    put_queue = new Heap(AbstractResourceEvent.isless);
+    get_queue = new Heap(AbstractResourceEvent.isless);
 
     constructor(sim, capacity) {
         this.sim = sim;

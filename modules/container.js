@@ -1,14 +1,13 @@
 export { ContainerPut, ContainerGet };
 
-import { Event } from './event.js';
+import { AbstractResourceEvent } from './abstract_resource.js';
 
-class ContainerEvent extends Event {
+class ContainerEvent extends AbstractResourceEvent {
     amount;
 
     constructor(sim, amount=1, priority=0) {
-        super(sim);
+        super(sim, priority);
         this.amount = amount;
-        this.priority = priority;
     }
 }
 

@@ -11,22 +11,22 @@ import { StorePut, StoreGet } from './modules/store.js';
 import { FilterStorePut, FilterStoreGet } from './modules/filterstore.js';
 
 class Simulation {
-    clock;
+    #clock;
     eid = 0;
     heap = new Heap(Event.isless);
     active_process = null;
 
     constructor(clock=0) {
-        this.clock = clock;
+        this.#clock = clock;
     }
 
     now() {
-        return this.clock;
+        return this.#clock;
     }
 
     run(until=Infinity) {
         if (typeof(until) === 'number') {
-            var ev = this.timeout(until - this.clock);
+            var ev = this.timeout(until - this.#clock);
         } else if (until instanceof Event) {
             var ev = until;
         } else {
@@ -54,7 +54,7 @@ class Simulation {
         const ev = this.heap.pop();
         //console.log(ev.toString());
         ev.state = EventState.PROCESSED;
-        this.clock = ev.scheduled_time;
+        this.#clock = ev.scheduled_time;
         for (const cb of ev.callbacks) {
             cb();
         }

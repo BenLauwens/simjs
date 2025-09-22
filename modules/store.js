@@ -1,14 +1,13 @@
 export { StorePut, StoreGet };
 
-import { Event } from './event.js';
+import { AbstractResourceEvent } from './abstract_resource.js';
 
-class StorePut extends Event {
+class StorePut extends AbstractResourceEvent {
     item;
 
     constructor(sim, item, priority=0) {
-        super(sim);
+        super(sim, priority);
         this.item = item;
-        this.priority = priority;
     }
 
     do(store) {
@@ -20,11 +19,10 @@ class StorePut extends Event {
     }
 }
 
-class StoreGet extends Event {
+class StoreGet extends AbstractResourceEvent {
 
     constructor(sim, priority=0) {
-        super(sim);
-        this.priority = priority;
+        super(sim, priority);
     }
 
     do(store) {

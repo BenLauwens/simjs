@@ -1,15 +1,14 @@
 export { ResourcePut, ResourcePreemptPut, ResourceGet };
 
-import { Event } from './event.js';
+import { AbstractResourceEvent } from './abstract_resource.js';
 
-class ResourcePut extends Event {
+class ResourcePut extends AbstractResourceEvent {
     res;
     proc;
     usage_since;
 
     constructor(sim, res, priority=0) {
-        super(sim);
-        this.priority = priority;
+        super(sim, priority);
         this.res = res;
         this.proc = this.sim.active_process;
     }
@@ -18,7 +17,7 @@ class ResourcePut extends Event {
         if (res.users.size < res.capacity) {
             res.users.add(this);
             this.usage_since = this.sim.now();
-            this.schedule();
+            this.schedule(0, { priority: this.priority });
         }
         return false;
     }
@@ -35,8 +34,8 @@ class ResourcePreemptPut extends ResourcePut {
 
     do(res) {
         if (res.users.size === res.capacity) {
-            const preempt = res.users.keys().reduce((a, b) => Event.isless(a,b) ? b : a, { priority: Infinity });
-            if (Event.isless(this, preempt)) {
+            const preempt = res.users.keys().reduce((a, b) => AbstractResourceEvent.isless(a,b) ? b : a, { priority: Infinity });
+            if (AbstractResourceEvent.isless(this, preempt)) {
                 res.users.delete(preempt);
                 preempt.proc.interrupt({ by: this.sim.active_process, usage_since: preempt.usage_since, resource: res });
             }
@@ -45,18 +44,17 @@ class ResourcePreemptPut extends ResourcePut {
     }
 }
 
-class ResourceGet extends Event {
+class ResourceGet extends AbstractResourceEvent {
     req;
 
     constructor(sim, req, priority=0) {
-        super(sim);
+        super(sim, priority);
         this.req = req;
-        this.priority = priority;
     }
 
     do(res) {
         res.users.delete(this.req);
-        this.schedule();
+        this.schedule(0, { priority: this.priority });
         return false;
     }
 }
