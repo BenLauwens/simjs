@@ -37,7 +37,7 @@ class AbstractResource {
     static trigger_put(_, res) {
         let proceed = true;
         while (! res.put_queue.isempty() && proceed) {
-            const put_ev = res.put_queue.first();
+            const put_ev = res.put_queue.peek();
             proceed = put_ev.do(res);
             if (put_ev.state === EventState.SCHEDULED) {
                 res.put_queue.pop();
@@ -48,7 +48,7 @@ class AbstractResource {
     static trigger_get(_, res) {
         let proceed = true;
         while (! res.get_queue.isempty() && proceed) {
-            const get_ev = res.get_queue.first();
+            const get_ev = res.get_queue.peek();
             proceed = get_ev.do(res);
             if (get_ev.state === EventState.SCHEDULED) {
                 res.get_queue.pop();

@@ -21,7 +21,7 @@ class Heap {
         this.heapify_up();
     }
 
-    first() {
+    peek() {
         return this.heap[0];
     }
 

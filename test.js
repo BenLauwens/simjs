@@ -1,4 +1,5 @@
 import { Simulation, Resource, Store, FilterStore } from "./index.js";
+import { getRandomExponential, getRandomGaussian } from "./examples/utils.js";
 
 function* my_process(sim) {
     yield sim.event().succeed();
@@ -191,3 +192,25 @@ const worker = new Resource(sim, 1);
 sim.process(work(sim, worker));
 sim.process(important_work(sim, worker));
 sim.run(940);
+
+
+const NUM = 100000000;
+let samples = new Float64Array(NUM);
+let start = Date.now();
+for (let i=0; i<NUM; i++) {
+    samples[i] = getRandomGaussian(4, 3);
+}
+console.log(Date.now() - start);
+let mean = samples.reduce((a,b) => a + b, 0) / NUM;
+let variance = samples.map((a) => (a - mean) ** 2).reduce((a,b) => a + b, 0) / (NUM - 1);
+console.log(mean, variance);
+
+samples = new Float64Array(NUM);
+start = Date.now();
+for (let i=0; i<NUM; i++) {
+    samples[i] = getRandomExponential(2);
+}
+console.log(Date.now() - start);
+mean = samples.reduce((a,b) => a + b, 0) / NUM;
+variance = samples.map((a) => (a - mean) ** 2).reduce((a,b) => a + b, 0) / (NUM - 1);
+console.log(mean, variance);
