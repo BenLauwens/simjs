@@ -1,4 +1,4 @@
-import { getRandomExponential, getRandomGaussian } from './examples/utils.js';
+import { getRandomExponential, getRandomGaussian } from '../examples/utils.js';
 
 const NUM = 100000000;
 let samples = new Float64Array(NUM);

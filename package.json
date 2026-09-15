@@ -1,13 +1,21 @@
 {
   "name": "simjs",
   "version": "1.0.0",
-  "description": "Process based discrete event simulation",
+  "description": "Process-based discrete-event simulation",
   "license": "MIT",
   "author": "Ben Lauwens",
   "type": "module",
-  "main": "index.js",
+  "main": "./index.js",
+  "exports": {
+    ".": "./index.js"
+  },
+  "files": [
+    "index.js",
+    "src",
+    "README.md"
+  ],
   "scripts": {
-    "test": "node --test",
-    "benchmark": "node benchmark.js"
+    "test": "node --test test/*.test.js test/integration/*.test.js",
+    "benchmark": "node benchmarks/distributions.js"
   }
 }

@@ -1,6 +1,7 @@
 export { Condition };
 
 import { Event, EventState } from './event.js';
+import { InvalidEventError } from '../errors.js';
 
 class Condition extends Event {
     operand;
@@ -12,7 +13,7 @@ class Condition extends Event {
         this.events = events;
         for (const ev of events) {
             if (ev.sim !== sim) {
-                throw new Error('Condition operands must belong to the same simulation.');
+                throw new InvalidEventError('Condition operands must belong to the same simulation.');
             }
             this.operand_callbacks.push({ event: ev, callback: ev.append_callback(Condition.check, this) });
         }

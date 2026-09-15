@@ -74,7 +74,7 @@ It provides:
 Every action is represented as an `Event` with:
 
 - `id`
-- `state`
+- `event_state`
 - `scheduled_time`
 - `priority`
 - `result`
@@ -93,6 +93,12 @@ const EventState = {
 Processes expose separate lifecycle fields: `process_state` describes whether
 the process is starting, started, stopped, or failed, while `event_state`
 describes the completion event's scheduling state.
+
+The legacy `state` accessors are deprecated and will be removed in a future
+major release. Use `event_state` for events and `process_state` for processes.
+
+Resource operations must be called from inside a simulation process. Create the
+operation, then yield its event to wait for completion.
 
 The event heap orders events by:
 
@@ -263,6 +269,7 @@ function* worker() {
 ### `resource.release(req, { priority = 0 } = {})`
 
 Releases a prior request. This is often handled automatically by `using`.
+Resource operations must be invoked from a running simulation process.
 
 ## Containers
 

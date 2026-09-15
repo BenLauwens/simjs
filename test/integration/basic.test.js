@@ -1,4 +1,4 @@
-import { Simulation, Resource, Store, FilterStore } from "./index.js";
+import { Simulation, Resource, Store, FilterStore } from "../../index.js";
 
 function* my_process(sim) {
     yield sim.event().succeed();

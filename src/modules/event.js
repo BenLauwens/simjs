@@ -1,5 +1,7 @@
 export { EventState, Event };
 
+import { InvalidEventError } from '../errors.js';
+
 const EventState = {
     IDLE: 0,
     SCHEDULED: 1,
@@ -21,10 +23,12 @@ class Event {
         this.id = sim._next_event_id();
     }
 
+    /** @deprecated Use event_state instead. */
     get state() {
         return this.event_state;
     }
 
+    /** @deprecated Use event_state instead. */
     set state(value) {
         this.event_state = value;
     }
@@ -62,7 +66,7 @@ class Event {
 
     schedule(delay=0, {priority=0, result=null}={}) {
         if (this.#scheduled_once) {
-            throw new Error('An event can only be scheduled once.');
+            throw new InvalidEventError('An event can only be scheduled once.');
         }
         this.#scheduled_once = true;
         this.scheduled_time = this.sim.now() + delay;

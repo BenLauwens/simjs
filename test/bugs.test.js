@@ -2,9 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import { Simulation, FilterStore, Store, Resource } from '../index.js';
-import { EventState } from '../modules/event.js';
-import { ProcessState } from '../modules/process.js';
-import { Condition } from '../modules/condition.js';
+import { EventState } from '../src/modules/event.js';
+import { ProcessState } from '../src/modules/process.js';
+import { Condition } from '../src/modules/condition.js';
 
 
 test('FilterStore initializes its load from provided items', () => {
@@ -156,9 +156,7 @@ test('Resource preemption rejects processless requests clearly', () => {
   const sim = new Simulation();
   const resource = new Resource(sim, 1);
 
-  resource.request();
-
-  assert.throws(() => resource.request({ priority: 1, preempt: true }), /process-owned/);
+  assert.throws(() => resource.request(), /within a process/);
 });
 
 test('Invalid process yields do not update waiting_for', () => {
@@ -176,9 +174,13 @@ test('Resource release rejects requests from another resource', () => {
   const sim = new Simulation();
   const first = new Resource(sim, 1);
   const second = new Resource(sim, 1);
-  const request = first.request();
 
-  assert.throws(() => second.release(request), /does not belong/);
+  sim.process(function* () {
+    const request = first.request();
+    yield request;
+    assert.throws(() => second.release(request), /does not belong/);
+  });
+  sim.run(1);
 });
 
 test('All-of with no operands succeeds immediately', () => {

@@ -1,6 +1,7 @@
 export { ContainerPut, ContainerGet };
 
 import { AbstractResourceEvent } from './abstract_resource.js';
+import { ResourceError } from '../errors.js';
 
 class ContainerEvent extends AbstractResourceEvent {
     amount;
@@ -14,7 +15,7 @@ class ContainerEvent extends AbstractResourceEvent {
 class ContainerPut extends ContainerEvent {
     constructor(sim, amount=1, priority=0) {
         if (!Number.isFinite(amount) || amount < 0) {
-            throw new Error('Container amount must be a non-negative number.');
+            throw new ResourceError('Container amount must be a non-negative number.');
         }
         super(sim, amount, priority);
     }
@@ -32,7 +33,7 @@ class ContainerPut extends ContainerEvent {
 class ContainerGet extends ContainerEvent {
     constructor(sim, amount=1, priority=0) {
         if (!Number.isFinite(amount) || amount < 0) {
-            throw new Error('Container amount must be a non-negative number.');
+            throw new ResourceError('Container amount must be a non-negative number.');
         }
         super(sim, amount, priority);
     }

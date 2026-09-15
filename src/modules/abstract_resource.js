@@ -2,6 +2,7 @@ export { AbstractResource, AbstractResourceEvent };
 
 import { Heap } from './heap.js';
 import { Event, EventState } from './event.js';
+import { ResourceError } from '../errors.js';
 
 class AbstractResourceEvent extends Event {
 
@@ -31,13 +32,19 @@ class AbstractResource {
 
     constructor(sim, capacity) {
         if (capacity === null || capacity === undefined || Number.isNaN(capacity)) {
-            throw new Error('Resource capacity must be a non-negative number or Infinity.');
+            throw new ResourceError('Resource capacity must be a non-negative number or Infinity.');
         }
         if (capacity < 0 || (!Number.isFinite(capacity) && capacity !== Infinity)) {
-            throw new Error('Resource capacity must be a non-negative number or Infinity.');
+            throw new ResourceError('Resource capacity must be a non-negative number or Infinity.');
         }
         this.sim = sim;
         this.capacity = capacity;
+    }
+
+    require_process() {
+        if (this.sim.active_process === null) {
+            throw new ResourceError('Resource operations must occur within a process.');
+        }
     }
 
     dispatch_put() {

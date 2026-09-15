@@ -1,6 +1,7 @@
 export { ResourcePut, ResourcePreemptPut, ResourceGet };
 
 import { AbstractResourceEvent } from './abstract_resource.js';
+import { ResourceError } from '../errors.js';
 
 class ResourcePut extends AbstractResourceEvent {
     res;
@@ -37,7 +38,7 @@ class ResourcePreemptPut extends ResourcePut {
             const preempt = res.users.keys().reduce((a, b) => AbstractResourceEvent.isless(a,b) ? b : a, { priority: Infinity });
             if (AbstractResourceEvent.isless(this, preempt)) {
                 if (this.proc === null || preempt.proc === null) {
-                    throw new Error('Resource preemption requires process-owned requests.');
+                    throw new ResourceError('Resource preemption requires process-owned requests.');
                 }
                 res.users.delete(preempt);
                 preempt.proc.interrupt({ by: this.sim.active_process, usage_since: preempt.usage_since, resource: res });

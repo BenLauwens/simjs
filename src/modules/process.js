@@ -1,6 +1,7 @@
 export { Process, ProcessState };
 
 import { Event, EventState } from './event.js';
+import { ProcessError } from '../errors.js';
 
 const ProcessState = {
     STARTING: 0,
@@ -16,7 +17,7 @@ function normalizeGenerator(generator, sim) {
     if (typeof generator === 'function') {
         return generator(sim);
     }
-    throw new Error('A process requires a generator object or a generator function.');
+    throw new ProcessError('A process requires a generator object or a generator function.');
 }
 
 class Process extends Event {
@@ -27,10 +28,12 @@ class Process extends Event {
     waiting_for = null;
     pending_interrupt = null;
 
+    /** @deprecated Use process_state instead. */
     get state() {
         return this.process_state;
     }
 
+    /** @deprecated Use process_state instead. */
     set state(value) {
         this.process_state = value;
     }
@@ -44,7 +47,7 @@ class Process extends Event {
 
     interrupt(cause=null) {
         if (this === this.sim.active_process) {
-            throw new Error('A process cannot interrupts itself.');
+            throw new ProcessError('A process cannot interrupts itself.');
         }
         switch (this.process_state) {
             case ProcessState.STARTING:
@@ -57,9 +60,9 @@ class Process extends Event {
                 break;
             }
             case ProcessState.STOPPED:
-                throw new Error('A stopped process cannot be interrupted.');
+                throw new ProcessError('A stopped process cannot be interrupted.');
             case ProcessState.FAILED:
-                throw new Error('A failed process cannot be interrupted.');
+                throw new ProcessError('A failed process cannot be interrupted.');
         }
         return this.sim.timeout(0);
     }
@@ -76,7 +79,7 @@ class Process extends Event {
 
     resume(ev) {
         if (!this.generator || typeof this.generator.next !== 'function') {
-            throw new Error('Process generator is not initialized.');
+            throw new ProcessError('Process generator is not initialized.');
         }
         this.sim._set_active_process(this);
         let ret;
@@ -101,7 +104,7 @@ class Process extends Event {
             this.waiting_for = null;
             this.target_ev = null;
             this.resume_cb = null;
-            throw new Error('A process can only wait for an event from the same simulation.');
+            throw new ProcessError('A process can only wait for an event from the same simulation.');
         }
         this.waiting_for = yielded;
         const next_ev = yielded.event_state === EventState.PROCESSED ? this.sim.timeout(0, { result: yielded.result }) : yielded;

@@ -20,7 +20,7 @@ function* customer(sim, name, counter, time_in_bank) {
     const patience = getRandomIn(MIN_PATIENCE, MAX_PATIENCE);
     yield sim.or(req, sim.timeout(patience));
     const wait = sim.now() - arrive;
-    if (req.state === EventState.PROCESSED) {    
+    if (req.event_state === EventState.PROCESSED) {
         console.log(sim.now().toFixed(2).padStart(5, '0') + ' ' + name + ': Waited ' + wait.toFixed(2).padStart(5, '0'));
         yield sim.timeout(getRandomExponential(1 / time_in_bank));
         console.log(sim.now().toFixed(2).padStart(5, '0') + ' ' + name + ': Finished');
