@@ -40,25 +40,33 @@ class AbstractResource {
         this.capacity = capacity;
     }
 
-    static trigger_put(_, res) {
+    dispatch_put() {
         let proceed = true;
-        while (! res.put_queue.isempty() && proceed) {
-            const put_ev = res.put_queue.peek();
-            proceed = put_ev.do(res);
+        while (! this.put_queue.isempty() && proceed) {
+            const put_ev = this.put_queue.peek();
+            proceed = put_ev.do(this);
             if (put_ev.state === EventState.SCHEDULED) {
-                res.put_queue.pop();
-            } 
+                this.put_queue.pop();
+            }
         }
     }
 
-    static trigger_get(_, res) {
+    dispatch_get() {
         let proceed = true;
-        while (! res.get_queue.isempty() && proceed) {
-            const get_ev = res.get_queue.peek();
-            proceed = get_ev.do(res);
+        while (! this.get_queue.isempty() && proceed) {
+            const get_ev = this.get_queue.peek();
+            proceed = get_ev.do(this);
             if (get_ev.state === EventState.SCHEDULED) {
-                res.get_queue.pop();
+                this.get_queue.pop();
             }
         }
+    }
+
+    static trigger_put(_, res) {
+        res.dispatch_put();
+    }
+
+    static trigger_get(_, res) {
+        res.dispatch_get();
     }
 }

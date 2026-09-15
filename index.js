@@ -17,14 +17,40 @@ class SimulationStopError extends Error {
     }
 }
 
+class Scheduler {
+    #sim;
+
+    constructor(sim) {
+        this.#sim = sim;
+    }
+
+    step() {
+        if (this.#sim.heap.isempty()) {
+            throw new Error('Empty schedule');
+        }
+        const ev = this.#sim.heap.pop();
+        ev.state = EventState.PROCESSED;
+        this.#sim._advance_clock(ev.scheduled_time);
+        for (const cb of ev.callbacks) {
+            cb();
+        }
+    }
+}
+
 class Simulation {
     #clock;
     eid = 0;
     heap = new Heap(Event.isless);
     active_process = null;
+    #scheduler;
 
     constructor(clock=0) {
         this.#clock = clock;
+        this.#scheduler = new Scheduler(this);
+    }
+
+    _advance_clock(time) {
+        this.#clock = time;
     }
 
     now() {
@@ -54,16 +80,7 @@ class Simulation {
     }
 
     #step() {
-        if (this.heap.isempty()) {
-            throw new Error('Empty schedule');
-        }
-        const ev = this.heap.pop();
-        //console.log(ev.toString());
-        ev.state = EventState.PROCESSED;
-        this.#clock = ev.scheduled_time;
-        for (const cb of ev.callbacks) {
-            cb();
-        }
+        return this.#scheduler.step();
     }
 
     event() {

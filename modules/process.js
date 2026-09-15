@@ -13,6 +13,8 @@ class Process extends Event {
     generator;
     target_ev;
     resume_cb;
+    waiting_for = null;
+    pending_interrupt = null;
 
     constructor(sim, generator) {
         super(sim);
@@ -28,6 +30,7 @@ class Process extends Event {
         }
         switch (this.state) {
             case ProcessState.STARTING:
+                this.pending_interrupt = cause;
                 this.target_ev.schedule(0, { priority: Infinity });
                 break;
             case ProcessState.STARTED: {
@@ -45,20 +48,32 @@ class Process extends Event {
     static interruption(ev, proc) {
         if (proc.state === ProcessState.STARTED) {
             proc.target_ev.remove_callback(proc.resume_cb);
-            Process.execute(ev, proc);
+            proc.resume(ev);
+        }
+    }
+
+    resume(ev) {
+        this.sim.active_process = this;
+        const ret = ev.result instanceof Error ? this.generator.throw(ev.result) : this.generator.next(ev.result);
+        this.sim.active_process = null;
+        if (ret.done) {
+            this.state = ProcessState.STOPPED;
+            this.schedule(0, { result: ret.value });
+        } else {
+            this.waiting_for = ret.value;
+            this.target_ev = ret.value.state === EventState.PROCESSED ? this.sim.timeout(0, { result: ret.value.result }) : ret.value;
+            this.resume_cb = this.target_ev.append_callback(Process.execute, this);
         }
     }
 
     static execute(ev, proc) {
-        ev.sim.active_process = proc;
-        const ret = ev.result instanceof Error ? proc.generator.throw(ev.result) : proc.generator.next(ev.result);
-        ev.sim.active_process = null;
-        if (ret.done) {
-            proc.state = ProcessState.STOPPED;
-            proc.schedule(0, {result: ret.value});
-        } else {
-            proc.target_ev = ret.value.state === EventState.PROCESSED ? ev.sim.timeout(0, {result: ret.value.result}) : ret.value;
-            proc.resume_cb = proc.target_ev.append_callback(Process.execute, proc);
+        if (proc.pending_interrupt !== null && proc.state === ProcessState.STARTING) {
+            const cause = proc.pending_interrupt;
+            proc.pending_interrupt = null;
+            proc.target_ev.remove_callback(proc.resume_cb);
+            proc.resume(ev);
+            return;
         }
+        proc.resume(ev);
     }
 }
