@@ -19,6 +19,10 @@ class Condition extends Event {
     }
 
     static check(ev, op) {
+        if (op.state === EventState.PROCESSED) {
+            return;
+        }
+
         if (op.state === EventState.IDLE) {
             if (ev.result instanceof Error) {
                 op.schedule(0, { result: ev.result });
@@ -30,8 +34,10 @@ class Condition extends Event {
             return;
         }
 
-        if (op.state === EventState.SCHEDULED && ev.result instanceof Error) {
-            op.schedule(0, { priority: Infinity, result: ev.result });
+        if (op.state === EventState.SCHEDULED) {
+            if (ev.result instanceof Error) {
+                op.schedule(0, { priority: Infinity, result: ev.result });
+            }
         }
     }
 

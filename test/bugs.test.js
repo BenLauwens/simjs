@@ -28,13 +28,17 @@ test('Condition.check does not crash when a scheduled condition receives an erro
 
 test('Interrupting a starting process does not fall through into the started path', () => {
   const sim = new Simulation();
-  const proc = sim.process(function* () {
+  const proc = sim.process(function* (sim) {
     try {
       yield sim.timeout(1);
+      return 'unexpected';
     } catch (err) {
       return err.cause.by;
     }
   });
 
-  assert.doesNotThrow(() => proc.interrupt({ by: 'boss' }));
+  const interruptEvent = proc.interrupt({ by: 'boss' });
+  assert.equal(interruptEvent.state, 1);
+  sim.run(2);
+  assert.equal(proc.state, 2);
 });

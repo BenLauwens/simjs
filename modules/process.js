@@ -8,6 +8,16 @@ const ProcessState = {
     STOPPED: 2
 };
 
+function normalizeGenerator(generator, sim) {
+    if (generator && typeof generator.next === 'function') {
+        return generator;
+    }
+    if (typeof generator === 'function') {
+        return generator(sim);
+    }
+    throw new Error('A process requires a generator object or a generator function.');
+}
+
 class Process extends Event {
     state = ProcessState.STARTING;
     generator;
@@ -18,10 +28,10 @@ class Process extends Event {
 
     constructor(sim, generator) {
         super(sim);
-        this.generator = generator;
+        this.generator = normalizeGenerator(generator, sim);
         this.target_ev = sim.timeout(0);
-        this.target_ev.append_callback((_, proc) => proc.state = ProcessState.STARTED, this);
         this.resume_cb = this.target_ev.append_callback(Process.execute, this);
+        this.target_ev.append_callback((_, proc) => proc.state = ProcessState.STARTED, this);
     }
 
     interrupt(cause=null) {
@@ -30,8 +40,7 @@ class Process extends Event {
         }
         switch (this.state) {
             case ProcessState.STARTING:
-                this.pending_interrupt = cause;
-                this.target_ev.schedule(0, { priority: Infinity });
+                this.pending_interrupt = { by: cause && cause.by !== undefined ? cause.by : cause };
                 break;
             case ProcessState.STARTED: {
                 const err = new Error('InterruptException', { cause: cause });
@@ -46,34 +55,64 @@ class Process extends Event {
     }
 
     static interruption(ev, proc) {
-        if (proc.state === ProcessState.STARTED) {
-            proc.target_ev.remove_callback(proc.resume_cb);
-            proc.resume(ev);
+        if (proc.state !== ProcessState.STARTED) {
+            return;
         }
+        if (proc.resume_cb && proc.target_ev) {
+            proc.target_ev.remove_callback(proc.resume_cb);
+        }
+        proc.resume(ev);
     }
 
     resume(ev) {
+        if (!this.generator || typeof this.generator.next !== 'function') {
+            throw new Error('Process generator is not initialized.');
+        }
         this.sim.active_process = this;
         const ret = ev.result instanceof Error ? this.generator.throw(ev.result) : this.generator.next(ev.result);
         this.sim.active_process = null;
         if (ret.done) {
             this.state = ProcessState.STOPPED;
             this.schedule(0, { result: ret.value });
-        } else {
-            this.waiting_for = ret.value;
-            this.target_ev = ret.value.state === EventState.PROCESSED ? this.sim.timeout(0, { result: ret.value.result }) : ret.value;
-            this.resume_cb = this.target_ev.append_callback(Process.execute, this);
+            return;
         }
+
+        this.waiting_for = ret.value;
+        const next_ev = ret.value.state === EventState.PROCESSED ? this.sim.timeout(0, { result: ret.value.result }) : ret.value;
+        this.target_ev = next_ev;
+        this.resume_cb = this.target_ev.append_callback(Process.execute, this);
     }
 
     static execute(ev, proc) {
-        if (proc.pending_interrupt !== null && proc.state === ProcessState.STARTING) {
+        if (proc.state === ProcessState.STARTING && proc.pending_interrupt !== null) {
             const cause = proc.pending_interrupt;
             proc.pending_interrupt = null;
-            proc.target_ev.remove_callback(proc.resume_cb);
-            proc.resume(ev);
+            proc.state = ProcessState.STARTED;
+
+            const first = proc.generator.next();
+            if (first.done) {
+                proc.state = ProcessState.STOPPED;
+                proc.schedule(0, { result: first.value });
+                return;
+            }
+
+            const err = new Error('InterruptException', { cause: cause });
+            const ret = proc.generator.throw(err);
+            if (ret.done) {
+                proc.state = ProcessState.STOPPED;
+                proc.schedule(0, { result: ret.value });
+                return;
+            }
+
+            proc.waiting_for = ret.value;
+            const next_ev = ret.value.state === EventState.PROCESSED ? proc.sim.timeout(0, { result: ret.value.result }) : ret.value;
+            proc.target_ev = next_ev;
+            proc.resume_cb = proc.target_ev.append_callback(Process.execute, proc);
             return;
         }
-        proc.resume(ev);
+
+        if (proc.state === ProcessState.STARTED || proc.state === ProcessState.STARTING) {
+            proc.resume(ev);
+        }
     }
 }

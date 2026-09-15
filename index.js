@@ -108,6 +108,9 @@ class Simulation {
     }
 
     process(generator) {
+        if (typeof generator === 'function') {
+            return new Process(this, generator(this));
+        }
         return new Process(this, generator);
     }
 
