@@ -1,6 +1,6 @@
 export { ContainerPut, ContainerGet };
 
-import { AbstractResourceEvent } from './abstract_resource.js';
+import { AbstractResourceEvent, ResourceDispatchResult } from './abstract_resource.js';
 import { ResourceError } from '../errors.js';
 
 class ContainerEvent extends AbstractResourceEvent {
@@ -22,11 +22,11 @@ class ContainerPut extends ContainerEvent {
 
     do(con) {
         if (con.level + this.amount > con.capacity) {
-            return false;
+            return ResourceDispatchResult.BLOCKED;
         }
         con.level += this.amount;
         this.schedule();
-        return true;
+        return ResourceDispatchResult.CONTINUE;
     }
 }
 
@@ -40,11 +40,11 @@ class ContainerGet extends ContainerEvent {
 
     do(con) {
         if (con.level - this.amount < 0) {
-            return false;
+            return ResourceDispatchResult.BLOCKED;
         }
         con.level -= this.amount;
         this.schedule();
-        return true;
+        return ResourceDispatchResult.CONTINUE;
     }
 }
 

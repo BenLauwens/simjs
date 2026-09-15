@@ -1,8 +1,14 @@
-export { AbstractResource, AbstractResourceEvent };
+export { AbstractResource, AbstractResourceEvent, ResourceDispatchResult };
 
 import { Heap } from './heap.js';
 import { Event, EventState } from './event.js';
 import { ResourceError } from '../errors.js';
+
+const ResourceDispatchResult = Object.freeze({
+    BLOCKED: 'blocked',
+    COMPLETED: 'completed',
+    CONTINUE: 'continue'
+});
 
 class AbstractResourceEvent extends Event {
 
@@ -51,10 +57,11 @@ class AbstractResource {
         let proceed = true;
         while (! this.put_queue.isempty() && proceed) {
             const put_ev = this.put_queue.peek();
-            proceed = put_ev.do(this);
+            const outcome = put_ev.do(this);
             if (put_ev.event_state === EventState.SCHEDULED) {
                 this.put_queue.pop();
             }
+            proceed = outcome === ResourceDispatchResult.CONTINUE || outcome === true;
         }
     }
 
@@ -62,10 +69,11 @@ class AbstractResource {
         let proceed = true;
         while (! this.get_queue.isempty() && proceed) {
             const get_ev = this.get_queue.peek();
-            proceed = get_ev.do(this);
+            const outcome = get_ev.do(this);
             if (get_ev.event_state === EventState.SCHEDULED) {
                 this.get_queue.pop();
             }
+            proceed = outcome === ResourceDispatchResult.CONTINUE || outcome === true;
         }
     }
 

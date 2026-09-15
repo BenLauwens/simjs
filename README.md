@@ -69,6 +69,16 @@ It provides:
 - `sim.allof(...events)` / `sim.anyof(...events)` - multi-event conditions
 - `sim.run(until)` - advance until a deadline or until a stopping event fires
 
+The constructor accepts optional tracing hooks:
+
+```js
+const sim = new Simulation(0, {
+  onSchedule: (event) => console.log('scheduled', event.id),
+  onProcess: (event) => console.log('processed', event.id),
+  onError: (error, event) => console.error('failed', event.id, error)
+});
+```
+
 ### Event model
 
 Every action is represented as an `Event` with:
@@ -105,6 +115,14 @@ The event heap orders events by:
 1. earlier scheduled time
 2. higher priority
 3. lower id (stable tie-breaker)
+
+### Extending resources
+
+Custom resource events can extend `AbstractResourceEvent` and return a named
+`ResourceDispatchResult` from `do(resource)`: `BLOCKED` keeps the event queued,
+`COMPLETED` removes it and stops the current dispatch pass, and `CONTINUE`
+removes it and permits the next queued event to run. Legacy boolean returns are
+still accepted for compatibility.
 
 ### Processes
 
@@ -428,6 +446,11 @@ A process is started when created, enters `STARTED` when its initial wake-up eve
 
 A process may throw an exception by yielding an event whose `result` is an `Error` object. This is used internally for interruptions and failed conditions.
 
+The package exports typed errors including `SimulationError`, `ProcessError`,
+`ResourceError`, `InvalidEventError`, and `EmptyScheduleError`. The runtime
+remains JavaScript; `index.d.ts` provides optional editor and TypeScript
+consumer declarations without changing the implementation language.
+
 ## Notes for advanced use
 
 - The library intentionally favors clarity and teaching value over maximum abstraction.
@@ -439,10 +462,12 @@ A process may throw an exception by yielding an event whose `result` is an `Erro
 The project uses Node’s built-in test runner:
 
 ```bash
-node --test
+npm test
+npm run check
 ```
 
-This runs the current regression and feature tests in the repository.
+`npm test` runs the regression, resource, and integration tests. `npm run check`
+validates JavaScript syntax across source, tests, examples, and benchmarks.
 
 ## Contributing
 

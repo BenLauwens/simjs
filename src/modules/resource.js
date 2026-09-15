@@ -1,6 +1,6 @@
 export { ResourcePut, ResourcePreemptPut, ResourceGet };
 
-import { AbstractResourceEvent } from './abstract_resource.js';
+import { AbstractResourceEvent, ResourceDispatchResult } from './abstract_resource.js';
 import { ResourceError } from '../errors.js';
 
 class ResourcePut extends AbstractResourceEvent {
@@ -20,7 +20,7 @@ class ResourcePut extends AbstractResourceEvent {
             this.usage_since = this.sim.now();
             this.schedule(0, { priority: this.priority });
         }
-        return false;
+        return ResourceDispatchResult.COMPLETED;
     }
 
     [Symbol.dispose]() {
@@ -59,7 +59,7 @@ class ResourceGet extends AbstractResourceEvent {
     do(res) {
         res.users.delete(this.req);
         this.schedule(0, { priority: this.priority });
-        return false;
+        return ResourceDispatchResult.COMPLETED;
     }
 }
 

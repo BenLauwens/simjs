@@ -5,20 +5,22 @@ export {
     Store,
     FilterStore,
     EventState,
+    ProcessState,
     SimulationStopError,
     SimJSError,
     SimulationError,
     EmptyScheduleError,
     InvalidEventError,
     ProcessError,
-    ResourceError
+    ResourceError,
+    ResourceDispatchResult
 };
 
 import { Heap } from './modules/heap.js';
 import { Event, EventState } from './modules/event.js';
 import { Condition } from './modules/condition.js';
-import { Process } from './modules/process.js';
-import { AbstractResource } from './modules/abstract_resource.js';
+import { Process, ProcessState } from './modules/process.js';
+import { AbstractResource, ResourceDispatchResult } from './modules/abstract_resource.js';
 import { ResourcePut, ResourcePreemptPut, ResourceGet } from './modules/resource.js';
 import { ContainerPut, ContainerGet } from './modules/container.js';
 import { StorePut, StoreGet } from './modules/store.js';
@@ -48,9 +50,13 @@ class Scheduler {
         ev.event_state = EventState.PROCESSED;
         this.#sim._advance_clock(ev.scheduled_time);
         try {
+            this.#sim._notify_process(ev);
             for (const cb of ev.callbacks) {
                 cb();
             }
+        } catch (error) {
+            this.#sim._notify_error(error, ev);
+            throw error;
         } finally {
             ev.callbacks.length = 0;
         }
@@ -63,10 +69,12 @@ class Simulation {
     #heap = new Heap(Event.isless);
     #active_process = null;
     #scheduler;
+    #hooks;
 
-    constructor(clock=0) {
+    constructor(clock=0, { onSchedule=null, onProcess=null, onError=null }={}) {
         this.#clock = clock;
         this.#scheduler = new Scheduler(this);
+        this.#hooks = { onSchedule, onProcess, onError };
     }
 
     _advance_clock(time) {
@@ -90,6 +98,15 @@ class Simulation {
             throw new InvalidEventError('An event belongs to a different simulation.');
         }
         this.#heap.push(event);
+        this.#hooks.onSchedule?.(event);
+    }
+
+    _notify_process(event) {
+        this.#hooks.onProcess?.(event);
+    }
+
+    _notify_error(error, event) {
+        this.#hooks.onError?.(error, event);
     }
 
     _set_active_process(process) {

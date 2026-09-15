@@ -1,6 +1,6 @@
 export { StorePut, StoreGet };
 
-import { AbstractResourceEvent } from './abstract_resource.js';
+import { AbstractResourceEvent, ResourceDispatchResult } from './abstract_resource.js';
 
 class StorePut extends AbstractResourceEvent {
     item;
@@ -14,9 +14,9 @@ class StorePut extends AbstractResourceEvent {
         if (store.items.length - store.item_head < store.capacity) {
             store.items.push(this.item);
             this.schedule();
-            return true;
+            return ResourceDispatchResult.CONTINUE;
         }
-        return false;
+        return ResourceDispatchResult.BLOCKED;
     }
 }
 

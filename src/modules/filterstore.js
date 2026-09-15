@@ -1,6 +1,7 @@
 export { FilterStorePut, FilterStoreGet };
 
 import { StorePut, StoreGet } from './store.js';
+import { ResourceDispatchResult } from './abstract_resource.js';
 
 class FilterStorePut extends StorePut {
     item;
@@ -16,9 +17,9 @@ class FilterStorePut extends StorePut {
             store.load += 1;
             store.items.set(this.item, store.items.has(this.item) ? store.items.get(this.item) + 1 : 1);
             this.schedule();
-            return true;
+            return ResourceDispatchResult.CONTINUE;
         }
-        return false;
+        return ResourceDispatchResult.BLOCKED;
     }
 
     toString() {

@@ -224,3 +224,31 @@ test('Starting interruptions preserve the complete cause', () => {
 
   assert.deepEqual(received, cause);
 });
+
+test('Simulation tracing hooks observe scheduling and processing', () => {
+  const scheduled = [];
+  const processed = [];
+  const sim = new Simulation(0, {
+    onSchedule: (event) => scheduled.push(event),
+    onProcess: (event) => processed.push(event)
+  });
+
+  sim.timeout(1);
+  sim.run(1);
+
+  assert.ok(scheduled.length >= 2);
+  assert.equal(processed.length, scheduled.length);
+});
+
+test('Simulation error hook observes callback failures', () => {
+  let observed;
+  const sim = new Simulation(0, {
+    onError: (error, event) => { observed = { error, event }; }
+  });
+  const event = sim.timeout(0);
+  event.append_callback(() => { throw new Error('callback failed'); });
+
+  assert.throws(() => sim.run(0), /callback failed/);
+  assert.equal(observed.error.message, 'callback failed');
+  assert.equal(observed.event, event);
+});
