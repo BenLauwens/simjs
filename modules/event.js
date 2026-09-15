@@ -10,7 +10,7 @@ class Event {
     sim;
     id;
     callbacks = [];
-    state = EventState.IDLE;
+    event_state = EventState.IDLE;
     result;
     scheduled_time = null;
     priority;
@@ -19,6 +19,14 @@ class Event {
     constructor(sim) {
         this.sim = sim;
         this.id = ++sim.eid;
+    }
+
+    get state() {
+        return this.event_state;
+    }
+
+    set state(value) {
+        this.event_state = value;
     }
 
     static isless(ev1, ev2) {
@@ -59,9 +67,9 @@ class Event {
         this.#scheduled_once = true;
         this.scheduled_time = this.sim.now() + delay;
         this.priority = priority;
-        this.state = EventState.SCHEDULED;
+        this.event_state = EventState.SCHEDULED;
         this.result = result;
-        this.sim.heap.push(this);
+        this.sim._schedule(this);
         return this;
     }
 

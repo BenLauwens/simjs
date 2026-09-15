@@ -29,7 +29,7 @@ class Scheduler {
             throw new Error('Empty schedule');
         }
         const ev = this.#sim.heap.pop();
-        ev.state = EventState.PROCESSED;
+        ev.event_state = EventState.PROCESSED;
         this.#sim._advance_clock(ev.scheduled_time);
         try {
             for (const cb of ev.callbacks) {
@@ -57,6 +57,13 @@ class Simulation {
         this.#clock = time;
     }
 
+    _schedule(event) {
+        if (event.sim !== this) {
+            throw new Error('An event belongs to a different simulation.');
+        }
+        this.heap.push(event);
+    }
+
     now() {
         return this.#clock;
     }
@@ -72,6 +79,12 @@ class Simulation {
             }
             ev = this.timeout(until - this.#clock);
         } else if (until instanceof Event) {
+            if (until.sim !== this) {
+                throw new Error('The stopping event belongs to a different simulation.');
+            }
+            if (until.event_state !== EventState.SCHEDULED) {
+                throw new Error('The stopping event must be scheduled.');
+            }
             ev = until;
         } else {
             throw new Error('The argument until has to be a Number or an Event.');

@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 
 import { Simulation, FilterStore, Store } from '../index.js';
 import { EventState } from '../modules/event.js';
+import { ProcessState } from '../modules/process.js';
 import { Condition } from '../modules/condition.js';
 
 
@@ -112,4 +113,40 @@ test('Interrupting a starting process does not fall through into the started pat
   assert.equal(interruptEvent.state, 1);
   sim.run(2);
   assert.equal(proc.state, 2);
+});
+
+test('Process lifecycle state is separate from event state', () => {
+  const sim = new Simulation();
+  const proc = sim.process(function* () {
+    return 'done';
+  });
+
+  sim.run(0);
+
+  assert.equal(proc.state, ProcessState.STOPPED);
+  assert.equal(proc.event_state, EventState.PROCESSED);
+});
+
+test('Simulation rejects a stopping event from another simulation', () => {
+  const sim = new Simulation();
+  const other = new Simulation();
+
+  assert.throws(() => sim.run(other.timeout(1)), /different simulation/);
+});
+
+test('Conditions reject operands from another simulation', () => {
+  const sim = new Simulation();
+  const other = new Simulation();
+
+  assert.throws(() => sim.anyof(sim.event(), other.event()), /same simulation/);
+});
+
+test('Processes reject events from another simulation', () => {
+  const sim = new Simulation();
+  const other = new Simulation();
+  sim.process(function* () {
+    yield other.timeout(1);
+  });
+
+  assert.throws(() => sim.run(1), /same simulation/);
 });

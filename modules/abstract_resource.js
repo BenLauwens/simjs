@@ -45,7 +45,7 @@ class AbstractResource {
         while (! this.put_queue.isempty() && proceed) {
             const put_ev = this.put_queue.peek();
             proceed = put_ev.do(this);
-            if (put_ev.state === EventState.SCHEDULED) {
+            if (put_ev.event_state === EventState.SCHEDULED) {
                 this.put_queue.pop();
             }
         }
@@ -56,7 +56,7 @@ class AbstractResource {
         while (! this.get_queue.isempty() && proceed) {
             const get_ev = this.get_queue.peek();
             proceed = get_ev.do(this);
-            if (get_ev.state === EventState.SCHEDULED) {
+            if (get_ev.event_state === EventState.SCHEDULED) {
                 this.get_queue.pop();
             }
         }

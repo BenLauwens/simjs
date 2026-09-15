@@ -10,6 +10,9 @@ class Condition extends Event {
         this.operand = operand;
         this.events = events;
         for (const ev of events) {
+            if (ev.sim !== sim) {
+                throw new Error('Condition operands must belong to the same simulation.');
+            }
             ev.append_callback(Condition.check, this);
         }
     }
@@ -19,11 +22,11 @@ class Condition extends Event {
     }
 
     static check(ev, op) {
-        if (op.state !== EventState.IDLE) {
+        if (op.event_state !== EventState.IDLE) {
             return;
         }
 
-        if (op.state === EventState.IDLE) {
+        if (op.event_state === EventState.IDLE) {
             if (ev.result instanceof Error) {
                 op.schedule(0, { result: ev.result });
                 return;
@@ -35,10 +38,10 @@ class Condition extends Event {
     }
 
     static eval_and(events) {
-        return events.map((ev) => ev.state === EventState.PROCESSED).reduce((st1, st2) => st1 && st2, true);
+        return events.map((ev) => ev.event_state === EventState.PROCESSED).reduce((st1, st2) => st1 && st2, true);
     }
 
     static eval_or(events) {
-        return events.map((ev) => ev.state === EventState.PROCESSED).reduce((st1, st2) => st1 || st2, false);
+        return events.map((ev) => ev.event_state === EventState.PROCESSED).reduce((st1, st2) => st1 || st2, false);
     }
 }

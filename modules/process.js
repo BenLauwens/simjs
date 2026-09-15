@@ -19,26 +19,33 @@ function normalizeGenerator(generator, sim) {
 }
 
 class Process extends Event {
-    state = ProcessState.STARTING;
+    process_state = ProcessState.STARTING;
     generator;
     target_ev;
     resume_cb;
     waiting_for = null;
     pending_interrupt = null;
 
+    get state() {
+        return this.process_state;
+    }
+
+    set state(value) {
+        this.process_state = value;
+    }
+
     constructor(sim, generator) {
         super(sim);
         this.generator = normalizeGenerator(generator, sim);
         this.target_ev = sim.timeout(0);
         this.resume_cb = this.target_ev.append_callback(Process.execute, this);
-        this.target_ev.append_callback((_, proc) => proc.state = ProcessState.STARTED, this);
     }
 
     interrupt(cause=null) {
         if (this === this.sim.active_process) {
             throw new Error('A process cannot interrupts itself.');
         }
-        switch (this.state) {
+        switch (this.process_state) {
             case ProcessState.STARTING:
                 this.pending_interrupt = { by: cause && cause.by !== undefined ? cause.by : cause };
                 break;
@@ -55,7 +62,7 @@ class Process extends Event {
     }
 
     static interruption(ev, proc) {
-        if (proc.state !== ProcessState.STARTED) {
+        if (proc.process_state !== ProcessState.STARTED) {
             return;
         }
         if (proc.resume_cb && proc.target_ev) {
@@ -76,26 +83,29 @@ class Process extends Event {
             this.sim.active_process = null;
         }
         if (ret.done) {
-            this.state = ProcessState.STOPPED;
+            this.process_state = ProcessState.STOPPED;
             this.schedule(0, { result: ret.value });
             return;
         }
 
         this.waiting_for = ret.value;
-        const next_ev = ret.value.state === EventState.PROCESSED ? this.sim.timeout(0, { result: ret.value.result }) : ret.value;
+        if (!(ret.value instanceof Event) || ret.value.sim !== this.sim) {
+            throw new Error('A process can only wait for an event from the same simulation.');
+        }
+        const next_ev = ret.value.event_state === EventState.PROCESSED ? this.sim.timeout(0, { result: ret.value.result }) : ret.value;
         this.target_ev = next_ev;
         this.resume_cb = this.target_ev.append_callback(Process.execute, this);
     }
 
     static execute(ev, proc) {
-        if (proc.state === ProcessState.STARTING && proc.pending_interrupt !== null) {
+        if (proc.process_state === ProcessState.STARTING && proc.pending_interrupt !== null) {
             const cause = proc.pending_interrupt;
             proc.pending_interrupt = null;
-            proc.state = ProcessState.STARTED;
+            proc.process_state = ProcessState.STARTED;
 
             const first = proc.generator.next();
             if (first.done) {
-                proc.state = ProcessState.STOPPED;
+                proc.process_state = ProcessState.STOPPED;
                 proc.schedule(0, { result: first.value });
                 return;
             }
@@ -103,19 +113,25 @@ class Process extends Event {
             const err = new Error('InterruptException', { cause: cause });
             const ret = proc.generator.throw(err);
             if (ret.done) {
-                proc.state = ProcessState.STOPPED;
+                proc.process_state = ProcessState.STOPPED;
                 proc.schedule(0, { result: ret.value });
                 return;
             }
 
             proc.waiting_for = ret.value;
-            const next_ev = ret.value.state === EventState.PROCESSED ? proc.sim.timeout(0, { result: ret.value.result }) : ret.value;
+            if (!(ret.value instanceof Event) || ret.value.sim !== proc.sim) {
+                throw new Error('A process can only wait for an event from the same simulation.');
+            }
+            const next_ev = ret.value.event_state === EventState.PROCESSED ? proc.sim.timeout(0, { result: ret.value.result }) : ret.value;
             proc.target_ev = next_ev;
             proc.resume_cb = proc.target_ev.append_callback(Process.execute, proc);
             return;
         }
 
-        if (proc.state === ProcessState.STARTED || proc.state === ProcessState.STARTING) {
+        if (proc.process_state === ProcessState.STARTED || proc.process_state === ProcessState.STARTING) {
+            if (proc.process_state === ProcessState.STARTING) {
+                proc.process_state = ProcessState.STARTED;
+            }
             proc.resume(ev);
         }
     }
