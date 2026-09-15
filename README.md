@@ -104,9 +104,6 @@ Processes expose separate lifecycle fields: `process_state` describes whether
 the process is starting, started, stopped, or failed, while `event_state`
 describes the completion event's scheduling state.
 
-The legacy `state` accessors are deprecated and will be removed in a future
-major release. Use `event_state` for events and `process_state` for processes.
-
 Resource operations must be called from inside a simulation process. Create the
 operation, then yield its event to wait for completion.
 

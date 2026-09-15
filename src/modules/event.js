@@ -23,16 +23,6 @@ class Event {
         this.id = sim._next_event_id();
     }
 
-    /** @deprecated Use event_state instead. */
-    get state() {
-        return this.event_state;
-    }
-
-    /** @deprecated Use event_state instead. */
-    set state(value) {
-        this.event_state = value;
-    }
-
     static isless(ev1, ev2) {
         if (ev1.scheduled_time < ev2.scheduled_time) {
             return true;

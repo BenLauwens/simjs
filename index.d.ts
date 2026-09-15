@@ -52,8 +52,6 @@ export class Event<T = unknown> {
   result: T | null;
   scheduled_time: number | null;
   priority: number;
-  /** @deprecated Use event_state. */
-  state: EventStateValue;
   schedule(delay?: number, options?: TimeoutOptions): this;
   succeed(options?: TimeoutOptions): this;
   fail(error: unknown, options?: Omit<TimeoutOptions, 'result'>): this;
@@ -65,8 +63,6 @@ export class Process<T = unknown> extends Event<T> {
   readonly generator: Generator;
   process_state: ProcessStateValue;
   waiting_for: Event | null;
-  /** @deprecated Use process_state. */
-  state: ProcessStateValue;
   interrupt(cause?: unknown): Event<void>;
 }
 

@@ -22,7 +22,7 @@ test('Condition.check does not crash when a scheduled condition receives an erro
   const ev1 = sim.event();
   const ev2 = sim.event();
   const cond = new Condition(sim, Condition.eval_and, ev1, ev2);
-  cond.state = EventState.SCHEDULED;
+  cond.event_state = EventState.SCHEDULED;
 
   assert.doesNotThrow(() => Condition.check(ev1, cond));
 });
@@ -110,9 +110,9 @@ test('Interrupting a starting process does not fall through into the started pat
   });
 
   const interruptEvent = proc.interrupt({ by: 'boss' });
-  assert.equal(interruptEvent.state, 1);
+  assert.equal(interruptEvent.event_state, 1);
   sim.run(2);
-  assert.equal(proc.state, 2);
+  assert.equal(proc.process_state, 2);
 });
 
 test('Process lifecycle state is separate from event state', () => {
@@ -124,7 +124,7 @@ test('Process lifecycle state is separate from event state', () => {
 
   sim.run(1);
 
-  assert.equal(proc.state, ProcessState.STOPPED);
+  assert.equal(proc.process_state, ProcessState.STOPPED);
   assert.equal(proc.event_state, EventState.PROCESSED);
 });
 

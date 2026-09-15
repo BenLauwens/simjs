@@ -28,16 +28,6 @@ class Process extends Event {
     waiting_for = null;
     pending_interrupt = null;
 
-    /** @deprecated Use process_state instead. */
-    get state() {
-        return this.process_state;
-    }
-
-    /** @deprecated Use process_state instead. */
-    set state(value) {
-        this.process_state = value;
-    }
-
     constructor(sim, generator) {
         super(sim);
         this.generator = normalizeGenerator(generator, sim);
