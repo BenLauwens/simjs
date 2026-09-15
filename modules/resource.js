@@ -36,6 +36,9 @@ class ResourcePreemptPut extends ResourcePut {
         if (res.users.size === res.capacity) {
             const preempt = res.users.keys().reduce((a, b) => AbstractResourceEvent.isless(a,b) ? b : a, { priority: Infinity });
             if (AbstractResourceEvent.isless(this, preempt)) {
+                if (this.proc === null || preempt.proc === null) {
+                    throw new Error('Resource preemption requires process-owned requests.');
+                }
                 res.users.delete(preempt);
                 preempt.proc.interrupt({ by: this.sim.active_process, usage_since: preempt.usage_since, resource: res });
             }

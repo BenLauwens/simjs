@@ -25,10 +25,10 @@ class Scheduler {
     }
 
     step() {
-        if (this.#sim.heap.isempty()) {
+        if (this.#sim._schedule_empty()) {
             throw new Error('Empty schedule');
         }
-        const ev = this.#sim.heap.pop();
+        const ev = this.#sim._pop_scheduled_event();
         ev.event_state = EventState.PROCESSED;
         this.#sim._advance_clock(ev.scheduled_time);
         try {
@@ -43,9 +43,9 @@ class Scheduler {
 
 class Simulation {
     #clock;
-    eid = 0;
-    heap = new Heap(Event.isless);
-    active_process = null;
+    #eid = 0;
+    #heap = new Heap(Event.isless);
+    #active_process = null;
     #scheduler;
 
     constructor(clock=0) {
@@ -57,11 +57,31 @@ class Simulation {
         this.#clock = time;
     }
 
+    _next_event_id() {
+        return ++this.#eid;
+    }
+
+    _schedule_empty() {
+        return this.#heap.isempty();
+    }
+
+    _pop_scheduled_event() {
+        return this.#heap.pop();
+    }
+
     _schedule(event) {
         if (event.sim !== this) {
             throw new Error('An event belongs to a different simulation.');
         }
-        this.heap.push(event);
+        this.#heap.push(event);
+    }
+
+    _set_active_process(process) {
+        this.#active_process = process;
+    }
+
+    get active_process() {
+        return this.#active_process;
     }
 
     now() {
@@ -163,6 +183,9 @@ class Resource extends AbstractResource {
     }
 
     release(req, {priority=0}={}) {
+        if (!(req instanceof ResourcePut) || req.res !== this) {
+            throw new Error('The request does not belong to this resource.');
+        }
         const ev = new ResourceGet(this.sim, req, priority);
         this.get_queue.push(ev);
         ev.append_callback(AbstractResource.trigger_put, this);

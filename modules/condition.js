@@ -5,6 +5,7 @@ import { Event, EventState } from './event.js';
 class Condition extends Event {
     operand;
     events;
+    operand_callbacks = [];
     constructor(sim, operand, ...events) {
         super(sim);
         this.operand = operand;
@@ -13,7 +14,10 @@ class Condition extends Event {
             if (ev.sim !== sim) {
                 throw new Error('Condition operands must belong to the same simulation.');
             }
-            ev.append_callback(Condition.check, this);
+            this.operand_callbacks.push({ event: ev, callback: ev.append_callback(Condition.check, this) });
+        }
+        if (events.length === 0) {
+            this.schedule(0, { result: [] });
         }
     }
 
@@ -26,15 +30,24 @@ class Condition extends Event {
             return;
         }
 
-        if (op.event_state === EventState.IDLE) {
-            if (ev.result instanceof Error) {
-                op.schedule(0, { result: ev.result });
-                return;
-            }
-            if (op.operand(op.events)) {
-                op.schedule(0, { result: op.events.map((event) => event.result) });
+        if (ev.result instanceof Error) {
+            op.detach_callbacks(ev);
+            op.schedule(0, { result: ev.result });
+            return;
+        }
+        if (op.operand(op.events)) {
+            op.detach_callbacks(ev);
+            op.schedule(0, { result: op.events.map((event) => event.result) });
+        }
+    }
+
+    detach_callbacks(except=null) {
+        for (const entry of this.operand_callbacks) {
+            if (entry.event !== except) {
+                entry.event.remove_callback(entry.callback);
             }
         }
+        this.operand_callbacks = [];
     }
 
     static eval_and(events) {

@@ -18,7 +18,7 @@ class Event {
     
     constructor(sim) {
         this.sim = sim;
-        this.id = ++sim.eid;
+        this.id = sim._next_event_id();
     }
 
     get state() {

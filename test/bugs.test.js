@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { Simulation, FilterStore, Store } from '../index.js';
+import { Simulation, FilterStore, Store, Resource } from '../index.js';
 import { EventState } from '../modules/event.js';
 import { ProcessState } from '../modules/process.js';
 import { Condition } from '../modules/condition.js';
@@ -118,10 +118,11 @@ test('Interrupting a starting process does not fall through into the started pat
 test('Process lifecycle state is separate from event state', () => {
   const sim = new Simulation();
   const proc = sim.process(function* () {
+    yield sim.timeout(0);
     return 'done';
   });
 
-  sim.run(0);
+  sim.run(1);
 
   assert.equal(proc.state, ProcessState.STOPPED);
   assert.equal(proc.event_state, EventState.PROCESSED);
@@ -149,4 +150,75 @@ test('Processes reject events from another simulation', () => {
   });
 
   assert.throws(() => sim.run(1), /same simulation/);
+});
+
+test('Resource preemption rejects processless requests clearly', () => {
+  const sim = new Simulation();
+  const resource = new Resource(sim, 1);
+
+  resource.request();
+
+  assert.throws(() => resource.request({ priority: 1, preempt: true }), /process-owned/);
+});
+
+test('Invalid process yields do not update waiting_for', () => {
+  const sim = new Simulation();
+  const proc = sim.process(function* () {
+    yield 42;
+  });
+
+  assert.throws(() => sim.run(0), /wait for an event/);
+  assert.equal(proc.waiting_for, null);
+  assert.equal(proc.process_state, ProcessState.FAILED);
+});
+
+test('Resource release rejects requests from another resource', () => {
+  const sim = new Simulation();
+  const first = new Resource(sim, 1);
+  const second = new Resource(sim, 1);
+  const request = first.request();
+
+  assert.throws(() => second.release(request), /does not belong/);
+});
+
+test('All-of with no operands succeeds immediately', () => {
+  const sim = new Simulation();
+  let result;
+
+  sim.process(function* () {
+    result = yield sim.allof();
+  });
+  sim.run(1);
+
+  assert.deepEqual(result, []);
+});
+
+test('Any-of with no operands succeeds immediately', () => {
+  const sim = new Simulation();
+  let result;
+
+  sim.process(function* () {
+    result = yield sim.anyof();
+  });
+  sim.run(1);
+
+  assert.deepEqual(result, []);
+});
+
+test('Starting interruptions preserve the complete cause', () => {
+  const sim = new Simulation();
+  const cause = { by: 'boss', resource: 'machine' };
+  let received;
+  const proc = sim.process(function* () {
+    try {
+      yield sim.timeout(1);
+    } catch (error) {
+      received = error.cause;
+    }
+  });
+
+  proc.interrupt(cause);
+  sim.run(1);
+
+  assert.deepEqual(received, cause);
 });

@@ -90,6 +90,10 @@ const EventState = {
 };
 ```
 
+Processes expose separate lifecycle fields: `process_state` describes whether
+the process is starting, started, stopped, or failed, while `event_state`
+describes the completion event's scheduling state.
+
 The event heap orders events by:
 
 1. earlier scheduled time
@@ -184,6 +188,8 @@ Same as `and` across multiple events.
 ### `sim.anyof(...events)`
 
 Same as `or` across multiple events.
+
+With no events, `allof()` and `anyof()` complete immediately with an empty array result.
 
 ### `sim.process(generator)`
 
