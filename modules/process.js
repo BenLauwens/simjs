@@ -69,8 +69,12 @@ class Process extends Event {
             throw new Error('Process generator is not initialized.');
         }
         this.sim.active_process = this;
-        const ret = ev.result instanceof Error ? this.generator.throw(ev.result) : this.generator.next(ev.result);
-        this.sim.active_process = null;
+        let ret;
+        try {
+            ret = ev.result instanceof Error ? this.generator.throw(ev.result) : this.generator.next(ev.result);
+        } finally {
+            this.sim.active_process = null;
+        }
         if (ret.done) {
             this.state = ProcessState.STOPPED;
             this.schedule(0, { result: ret.value });

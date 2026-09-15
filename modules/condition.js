@@ -19,7 +19,7 @@ class Condition extends Event {
     }
 
     static check(ev, op) {
-        if (op.state === EventState.PROCESSED) {
+        if (op.state !== EventState.IDLE) {
             return;
         }
 
@@ -30,13 +30,6 @@ class Condition extends Event {
             }
             if (op.operand(op.events)) {
                 op.schedule(0, { result: op.events.map((event) => event.result) });
-            }
-            return;
-        }
-
-        if (op.state === EventState.SCHEDULED) {
-            if (ev.result instanceof Error) {
-                op.schedule(0, { priority: Infinity, result: ev.result });
             }
         }
     }

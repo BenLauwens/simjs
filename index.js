@@ -31,8 +31,12 @@ class Scheduler {
         const ev = this.#sim.heap.pop();
         ev.state = EventState.PROCESSED;
         this.#sim._advance_clock(ev.scheduled_time);
-        for (const cb of ev.callbacks) {
-            cb();
+        try {
+            for (const cb of ev.callbacks) {
+                cb();
+            }
+        } finally {
+            ev.callbacks.length = 0;
         }
     }
 }
@@ -60,6 +64,12 @@ class Simulation {
     run(until=Infinity) {
         let ev;
         if (typeof(until) === 'number') {
+            if (!Number.isFinite(until) && until !== Infinity) {
+                throw new Error('The argument until must be a finite number or Infinity.');
+            }
+            if (until < this.#clock) {
+                throw new Error('The argument until cannot be earlier than the current simulation time.');
+            }
             ev = this.timeout(until - this.#clock);
         } else if (until instanceof Event) {
             ev = until;
@@ -175,6 +185,7 @@ class Container extends AbstractResource {
 
 class Store extends AbstractResource {
     items;
+    item_head = 0;
 
     constructor(sim, capacity=Infinity, {items=[]}={}) {
         super(sim, capacity);

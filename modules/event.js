@@ -14,6 +14,7 @@ class Event {
     result;
     scheduled_time = null;
     priority;
+    #scheduled_once = false;
     
     constructor(sim) {
         this.sim = sim;
@@ -52,6 +53,10 @@ class Event {
     }
 
     schedule(delay=0, {priority=0, result=null}={}) {
+        if (this.#scheduled_once) {
+            throw new Error('An event can only be scheduled once.');
+        }
+        this.#scheduled_once = true;
         this.scheduled_time = this.sim.now() + delay;
         this.priority = priority;
         this.state = EventState.SCHEDULED;

@@ -11,7 +11,7 @@ class StorePut extends AbstractResourceEvent {
     }
 
     do(store) {
-        if (store.items.length < store.capacity) {
+        if (store.items.length - store.item_head < store.capacity) {
             store.items.push(this.item);
             this.schedule();
             return true;
@@ -27,8 +27,15 @@ class StoreGet extends AbstractResourceEvent {
     }
 
     do(store) {
-        if (store.items.length > 0) {
-            const item = store.items.shift();
+        if (store.items.length > store.item_head) {
+            const item = store.items[store.item_head++];
+            if (store.item_head === store.items.length) {
+                store.items.length = 0;
+                store.item_head = 0;
+            } else if (store.item_head >= 1024 && store.item_head * 2 >= store.items.length) {
+                store.items.splice(0, store.item_head);
+                store.item_head = 0;
+            }
             this.schedule(0, {result: item});
         }
         return false;

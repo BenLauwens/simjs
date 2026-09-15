@@ -27,6 +27,9 @@ import { Simulation, Resource, Store } from './index.js';
 
 Or from a package install if you publish it to a module-aware environment.
 
+The distribution benchmark is available separately with `npm run benchmark` so
+it does not slow down the test suite.
+
 ## Quick start
 
 ```js

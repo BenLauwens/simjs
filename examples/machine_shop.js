@@ -20,7 +20,7 @@ function time_per_part() {
 }
 
 function time_to_failure() {
-    return getRandomExponential(1 / BREAK_MEAN);
+    return getRandomExponential(BREAK_MEAN);
 }
 
 class Machine {
@@ -44,9 +44,9 @@ class Machine {
                 const start = this.sim.now();
                 try {
                     yield this.sim.timeout(done_in);
-                } catch (exc) {
+                } catch {
                     this.broken = true;
-                    done_in -= this.sim.now - start;
+                    done_in -= this.sim.now() - start;
                     using req = repairman.request({priority: 1, preempt: true});
                     //console.log('Ask repairman');
                     yield req;
