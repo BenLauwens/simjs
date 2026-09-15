@@ -14,6 +14,7 @@ class StorePut extends AbstractResourceEvent {
         if (store.items.length < store.capacity) {
             store.items.push(this.item);
             this.schedule();
+            return true;
         }
         return false;
     }

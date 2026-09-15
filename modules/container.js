@@ -13,6 +13,9 @@ class ContainerEvent extends AbstractResourceEvent {
 
 class ContainerPut extends ContainerEvent {
     constructor(sim, amount=1, priority=0) {
+        if (!Number.isFinite(amount) || amount < 0) {
+            throw new Error('Container amount must be a non-negative number.');
+        }
         super(sim, amount, priority);
     }
 
@@ -28,6 +31,9 @@ class ContainerPut extends ContainerEvent {
 
 class ContainerGet extends ContainerEvent {
     constructor(sim, amount=1, priority=0) {
+        if (!Number.isFinite(amount) || amount < 0) {
+            throw new Error('Container amount must be a non-negative number.');
+        }
         super(sim, amount, priority);
     }
 

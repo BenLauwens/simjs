@@ -21,18 +21,17 @@ class Condition extends Event {
     static check(ev, op) {
         if (op.state === EventState.IDLE) {
             if (ev.result instanceof Error) {
-                op.schedule(0, {result: ev.result});
-            } else {
-                if (op.operand(op.events)) {
-                    op.schedule(0, {result: op.events.map((ev) => ev.result)});
-                }
+                op.schedule(0, { result: ev.result });
+                return;
             }
-        } else if (op.state === EventState.SCHEDULED) {
-            if (ev.result instanceof Error) {
-                op.schedule(0, {priority: infinity, result: ev.result});
-            } else {
-                op.state_results.set(ev, [ev.state, ev.result]);
+            if (op.operand(op.events)) {
+                op.schedule(0, { result: op.events.map((event) => event.result) });
             }
+            return;
+        }
+
+        if (op.state === EventState.SCHEDULED && ev.result instanceof Error) {
+            op.schedule(0, { priority: Infinity, result: ev.result });
         }
     }
 

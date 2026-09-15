@@ -30,6 +30,12 @@ class AbstractResource {
     get_queue = new Heap(AbstractResourceEvent.isless);
 
     constructor(sim, capacity) {
+        if (capacity === null || capacity === undefined || Number.isNaN(capacity)) {
+            throw new Error('Resource capacity must be a non-negative number or Infinity.');
+        }
+        if (capacity < 0 || (!Number.isFinite(capacity) && capacity !== Infinity)) {
+            throw new Error('Resource capacity must be a non-negative number or Infinity.');
+        }
         this.sim = sim;
         this.capacity = capacity;
     }

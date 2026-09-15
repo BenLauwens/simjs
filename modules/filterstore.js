@@ -16,6 +16,7 @@ class FilterStorePut extends StorePut {
             store.load += 1;
             store.items.set(this.item, store.items.has(this.item) ? store.items.get(this.item) + 1 : 1);
             this.schedule();
+            return true;
         }
         return false;
     }

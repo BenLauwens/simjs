@@ -1,14 +1,21 @@
-export { Simulation, Resource, Container, Store, FilterStore, EventState };
+export { Simulation, Resource, Container, Store, FilterStore, EventState, SimulationStopError };
 
 import { Heap } from './modules/heap.js';
-import { Event, EventState} from './modules/event.js';
+import { Event, EventState } from './modules/event.js';
 import { Condition } from './modules/condition.js';
-import { Process, ProcessState } from './modules/process.js';
+import { Process } from './modules/process.js';
 import { AbstractResource } from './modules/abstract_resource.js';
 import { ResourcePut, ResourcePreemptPut, ResourceGet } from './modules/resource.js';
 import { ContainerPut, ContainerGet } from './modules/container.js';
 import { StorePut, StoreGet } from './modules/store.js';
 import { FilterStorePut, FilterStoreGet } from './modules/filterstore.js';
+
+class SimulationStopError extends Error {
+    constructor() {
+        super('Stop Simulation');
+        this.name = 'SimulationStopError';
+    }
+}
 
 class Simulation {
     #clock;
@@ -25,10 +32,11 @@ class Simulation {
     }
 
     run(until=Infinity) {
+        let ev;
         if (typeof(until) === 'number') {
-            var ev = this.timeout(until - this.#clock);
+            ev = this.timeout(until - this.#clock);
         } else if (until instanceof Event) {
-            var ev = until;
+            ev = until;
         } else {
             throw new Error('The argument until has to be a Number or an Event.');
         }
@@ -38,12 +46,10 @@ class Simulation {
                 this.#step();
             }
         } catch (err) {
-            switch(err.message) {
-                case 'Stop Simulation':
-                    break;
-                default:
-                    throw err;
+            if (err instanceof SimulationStopError) {
+                return;
             }
+            throw err;
         }
     }
 
@@ -89,7 +95,7 @@ class Simulation {
     }
 
     static stop(_) {
-        throw new Error("Stop Simulation");
+        throw new SimulationStopError();
     }
 }
 
@@ -101,10 +107,11 @@ class Resource extends AbstractResource {
     }
 
     request({priority=0, preempt=false}={}) {
+        let ev;
         if (preempt) {
-            var ev = new ResourcePreemptPut(this.sim, this, priority);
+            ev = new ResourcePreemptPut(this.sim, this, priority);
         } else {
-            var ev = new ResourcePut(this.sim, this, priority);
+            ev = new ResourcePut(this.sim, this, priority);
         }
         this.put_queue.push(ev);
         ev.append_callback(AbstractResource.trigger_get, this);
@@ -176,7 +183,7 @@ class FilterStore extends Store {
 
     constructor(sim, capacity=Infinity, {items=new Map()}={}) {
         super(sim, capacity, {items: items});
-        this.load = items.values().reduce((a, b) => a + b, 0);
+        this.load = Array.from(items.values()).reduce((a, b) => a + b, 0);
     }
 
     put(item, {priority=0}={}) {

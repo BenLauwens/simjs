@@ -29,11 +29,13 @@ class Process extends Event {
         switch (this.state) {
             case ProcessState.STARTING:
                 this.target_ev.schedule(0, { priority: Infinity });
-            case ProcessState.STARTED:
+                break;
+            case ProcessState.STARTED: {
                 const err = new Error('InterruptException', { cause: cause });
                 const ev = this.sim.timeout(0, { priority: Infinity, result: err });
                 ev.append_callback(Process.interruption, this);
                 break;
+            }
             case ProcessState.STOPPED:
                 throw new Error('A stopped process cannot be interrupted.');
         }
